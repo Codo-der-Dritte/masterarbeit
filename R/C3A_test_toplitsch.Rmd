@@ -1,0 +1,168 @@
+---
+title: "C3A Code test"
+author: 
+  - Alexander Toplitsch^[h11706050@s.wu.ac.at]
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+    toc: false
+    number_sections: false
+    
+fontsize: 10pt
+linestretch: 1.2
+geometry: margin=1in
+link-citations: yes
+#fontfamily: mathpazo  # nice       
+#fontfamily: newcent   # old but freaky (round)
+#fontfamily: eulervm   # classic with fency equations
+#fontfamily: fourier   # modern
+#fontfamily: avant     # classic
+
+header-includes:
+  - \usepackage{fancyhdr}
+  - \usepackage{amsmath}
+  - \usepackage{dcolumn}
+  - \usepackage{hyperref}
+  - \usepackage{titlesec}
+  - \hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=black
+    }
+  - \pagestyle{fancy}
+---
+
+\fancyhf{} 
+\fancyfoot[L]{C3A Code test} 
+\fancyfoot[C]{\thepage} 
+\fancyfoot[R]{Alexander Toplitsch}
+\pagestyle{fancy} 
+\clearpage
+```{r library, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE,
+                      fig.align = "center",
+                      out.height ="80%"
+#                      collapse = TRUE
+)
+
+# Check necessary packages for installation and call them
+
+libs <- c("tidyverse", "leaflet", "lubridate", "readxl", "sfcr", "scales", "gt")
+installed_libs <- libs %in% rownames(installed.packages())
+if (any(installed_libs == F)) {
+  install.packages(libs[!installed_libs])
+}
+invisible(lapply(libs, library, character.only = T)) 
+```
+
+
+```{r Set up equations, parameter and initial conditions, include=FALSE}
+# Set up the model equations
+
+model_eqs <- sfcr_set(
+  Yt ~ Ct + It,
+  Lt ~ Lt[-1] * (1 - p) + It,
+  YDt ~ WBt + Pt +rm * Mt[-1],
+  Mt ~ Mt[-1] + YDt -Ct,
+  WBt ~ w * Nt,
+  Pt ~ Yt - WBt - (rl + p) * Lt[-1],
+  Nt ~ Yt / el,
+  Ct ~ a0 + a1 * YDt + a2 * Mt[-1],
+  Kt ~ Kt[-1] * (1 - delta) + It,
+  KTt ~ Yt / ek,
+  It ~ gamma * (KTt - Kt[-1]) + delta * Kt[-1]
+)
+
+# Set up parameter and initial conditions
+
+model_para <- sfcr_set(
+  a0 ~ 50,
+  a1 ~ 0.75,
+  a2 ~ 0.1,
+  delta ~ 0.1,
+  p ~ 0.1,
+  gamma ~ 0.2,
+  el ~ 1,
+  ek ~ 1,
+  rl ~ 0.04,
+  rm ~ 0.04,
+  w ~ 1
+)
+
+model_initial <- sfcr_set(
+Lt ~ 400,
+Mt ~ 400,
+Kt ~ 400,
+Yt ~ 400
+)
+```
+
+```{r Simulate Baseline Model, include=FALSE}
+# Create the Baseline (Policy Steady state)
+model_sim <- sfcr_baseline(
+  equations = model_eqs,
+  external = model_para,
+  initial = model_initial,
+  periods = 50
+)
+
+```
+
+```{r Simulate Shock Model, include=FALSE}
+# Add shock to system
+
+shocka0 <- sfcr_shock(
+  variables = list(
+    a0 ~ 60
+  ),
+  start = 10,
+  end = 50
+)
+
+model_shock <- sfcr_scenario(
+  baseline = model_sim,
+  scenario = shocka0,
+  periods = 50)
+
+```
+
+### Question 1)
+
+The equilibrium values of the endogenous variables can be seen in Table 1 below. 
+
+```{r Equilibrium values endo, echo=FALSE}
+model_sim %>% 
+  slice(n()) %>% 
+  select(c(2:12)) %>% 
+gt() %>% 
+    fmt_number(decimals = 0, sep_mark = ".", dec_mark = ",") %>% 
+  tab_header(title = "Table 1: Equilibrium values of endogenous variables")
+```
+
+
+
+### Question 2)
+
+The new equilibrium values can be seen below in Table 2. Overall the model needs 22 periods after the shock $(t=10)$ to stabilize. Consequently the model is fully stable again at period $t=33$
+
+```{r Equilibrium values shock endo, echo=FALSE}
+model_shock %>% 
+  slice(n()) %>% 
+  select(c(2:12)) %>% 
+gt() %>% 
+    fmt_number(decimals = 0, sep_mark = ".", dec_mark = ",") %>% 
+  tab_header(title = "Table 2: Equilibrium values of shocked endogenous variables") 
+```
+
+
+### Question 3)
+
+The model has no analytical solution when the parameters and initial values are unknown. In this case, there are more unknowns than there are equations, which means that the system of equations is underdetermined and has no solution (or, in some cases, infinite solutions) and is inconsistent. When the parameters and initial values are known, the model can be easily solved analytically by hand.
+
+
+### Question 4)
+
+I was not able to rewrite the model in continuous time. I would greatly appreciate it if you could point me to some resources so I can learn how to do that.
+

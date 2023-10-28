@@ -7,7 +7,7 @@
 #           Everything should be reproducible every time the R is 
 #           restarted. These main results regarding data and the model
 #           are then saved. Outputs are created in a different script
-#           which should be more flexiable and versatile.
+#           which should be more flexible and versatile.
 
 # Cite : citation() and used packages
 
@@ -19,9 +19,16 @@
 # Date script created: We 11.10.2023 19:48 -------------
 # Date script last modified:  ----
 
+citation()
+# Load Functions
+source("R/packages.R")
+
 # Run all necessary functions
 
+packages(libs = c("tidyverse", "leaflet", "lubridate", "readxl", "sfcr", "scales"))
 
+
+source("R/data_phil.R")
 
 
 # For good practice
