@@ -25,18 +25,17 @@ invisible(lapply(libs, library, character.only = T))
 #############################################################
 
 # Set up the model equations
-
 model_eqs <- sfcr_set(
   #----------------------------------#
   # Capitalists ("rich households")
   #----------------------------------#
   # [1] - Disposable income - Sum of wage income, distributed profits from firms and banks,
-  # interest income from deposits and treasuries, and rents, net of direct taxes paid
+  # interest income from deposits and treasuries, and rents, net of direct taxes
   # paid to the government.
   Yc ~ wc * Nc + Rents + FD + rm[-1] * Mc[-1] + FB + rb[-1] * Bh[-1] - Tdc,
   # [2] Saving - augments the stock of wealth.
   Shc ~ Yc - Cc, 
-  # [3p] Consumption deflator.
+  # [3p] v
   Cc ~ cc * p,
   # [4] Consumption - depend on expected disposable income, the open stock of wealth  and
   # expected capital gains, all measured in real terms.
@@ -80,8 +79,79 @@ model_eqs <- sfcr_set(
   #----------------------------------#
   # Workers ("other households")
   #----------------------------------#
-  
-  
+  # [16] Disposable income - Sum of wage income, rent to pay,
+  # interest payments from bank deposits, interest payments for mortgages,
+  # and rents, net of direct taxes paid to the government.
+  Yo ~ wo * No - Rents + rm[-1] * Mo[-1] - rmo[-1] * MOo[-1] - Tdo,
+  # [17] Saving
+  Sho ~ Yo - Co,
+  # [18p] Consumption deflator.
+  Co ~ co * p,
+  # [19] Consumption - depends on expected real disposable income, past 
+  # real wealth, and expected real capital gains on homes minus past
+  # wealth normalized by expected inflation.
+  co ~ alpha_1o * yo_e + alpha_2o * vo[-1] + 
+    alpha_3o * (cgho_e - p_e * vo[-1]/(1 + p_e)) +
+    iec - alpha_4o * morp * MOo[-1]/Yo[-1],
+  # [20] Wealth - Past wealth plus saving plus capital gains from homes.
+  Vo ~ Vo[-1] + Sho + CGHo,
+  # [21] Disposable income deflator.
+  yo ~ Yo/p,
+  # [22] Capital gains from homes.
+  CGHo ~ (ph - ph[-1]) * Ho[-1],
+  # [23] Imitation paramter.
+  iec ~ alpha_4o * No * (cc[-1]/Nc - 
+                         co[-1]/No),
+  #-----Portfolio Choice-----#
+  # [24] Cash - depends on current conmsumption.
+  HPo ~ eta * Co,
+  # [25] Bank deposits - residual.
+  Mo ~ Vo - HPo - ph * Ho,
+  # [26] Demand for Homes - depends on population growth,
+  # expected real income and lagged debt repayment ratios.
+  Ho ~ (No - No[-1])/No[-1] - mu_1 * ((yo_e - yo_e[-1])/yo_e) -
+    mu_2 * delta_debt_rep[-1],
+  # [26h] Debt repayment ratio.
+  debt_rep ~ ((rmo[-1]+morp) * Mo[-1]/Yo),
+  # [26h] Change debt repayment ratio.
+  delta_debt_rep ~ debt_rep - debt_rep[-1],
+  # [27] Change in Mortgages
+  MOo ~ (ph * (Ho - Ho[-1]) - Sho - morp * MOo[-1]) + MOo[-1],
+  # [28] Share of rented homes owned by capitalist.
+  Rents ~ rent * Hcr[-1],
+  # [29] Rent increases
+  rent ~ rent[-1] * (1 + y_e),
+  #----------------------------------#
+  # Nonfinancial firms
+  #----------------------------------#
+  # [30] Investment decision - depends on actual profits, Tobin's q,
+  # borrowing costs from banks and utilization rate.
+  k ~ ((iota_0 + iota_1 * FU[-1]/K_1[-1] - iota_2 * rll[-1] * 
+    (L[-1]/K[-1]) + iota_3 * (pe[-1] * E[-1]/K[-1]) +
+    iota_4 * u[-1]) * k[-1]) + k[-1],
+  # [30h] Capital from one periods ago.
+  K_1 ~ K[-1],
+  # [31] Prices - are set with a mark-up on wages.
+  p ~ (1 + rho) * wage/(prod * (1 - tau)),
+  # [32] Total Profits - are determined relative to the wage bill.
+  FT ~ rho * WB,
+  # [33] Distributed Profits - fixed share net of taxes and interest payments
+  # is ditributed to capitalists.
+  FD ~ (1 - beta) * (FT - rl[-1] * L[-1] - TF),
+  # [34] Mark-up - depends on relative strength of workers and capitalists.
+  rho ~ ((rho_1 * (prodg - wo_) + 1)/(1 + rho[-1])) - 1,
+  # [35] Utilization rate - ratio of real sales to "normal" sales, which in
+  # turn are in a fixed ratio (lambda) to the stock of real capital.
+  u ~ s/(lambda * k[-1]),
+  # [36] Retained Profits.
+  FU ~ FT -rl[-1] * L[-1] - FD - TF,
+  # [37] New equities issued.
+  pe ~ (xi * ((K - K[-1]) - FU)) / (E - E[-1]),
+  # [38] Loan changes - rewritten to display capital.
+  K ~ (L - L[-1]) + pe * (E - E[-1]) + FU + K[-1]
+  #----------------------------------#
+  # Banks and the central bank
+  #----------------------------------#
   
   
 )
