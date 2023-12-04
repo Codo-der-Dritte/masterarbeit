@@ -35,7 +35,7 @@ model_eqs <- sfcr_set(
   Yc ~ wc * Nc + Rents + FD + rm[-1] * Mc[-1] + FB + rb[-1] * Bh[-1] - Tdc,
   # [2] Saving - augments the stock of wealth.
   Shc ~ Yc - Cc, 
-  # [3p] v
+  # [3p] Consumption deflator.
   Cc ~ cc * p,
   # [4] Consumption - depend on expected disposable income, the open stock of wealth  and
   # expected capital gains, all measured in real terms.
@@ -54,7 +54,7 @@ model_eqs <- sfcr_set(
   # [9] Cash - depend on current consumption.
   HPc ~ eta * Cc,
   # [10] Bank deposits.
-  Mc ~ Vc - HPc - Bc - E * pe - ph *Hc,
+  Mc ~ Vc - HPc - Bc - E * pe - ph * Hc,
   # [11] Bonds.
   Bh ~ (Vc_e - HPc) * 
     (lambda_10 - lambda_11 * rrm  - lambda_12 * 
@@ -103,7 +103,7 @@ model_eqs <- sfcr_set(
   iec ~ alpha_4o * No * (cc[-1]/Nc - 
                          co[-1]/No),
   #-----Portfolio Choice-----#
-  # [24] Cash - depends on current conmsumption.
+  # [24] Cash - depends on current consumption.
   HPo ~ eta * Co,
   # [25] Bank deposits - residual.
   Mo ~ Vo - HPo - ph * Ho,
@@ -118,7 +118,7 @@ model_eqs <- sfcr_set(
   # [27] Change in Mortgages
   MOo ~ (ph * (Ho - Ho[-1]) - Sho - morp * MOo[-1]) + MOo[-1],
   # [28] Share of rented homes owned by capitalist.
-  Rents ~ rent * Hcr[-1],
+  Rents ~ rent * Hc[-1],
   # [29] Rent increases
   rent ~ rent[-1] * (1 + y_e),
   #----------------------------------#
@@ -148,10 +148,69 @@ model_eqs <- sfcr_set(
   # [37] New equities issued.
   pe ~ (xi * ((K - K[-1]) - FU)) / (E - E[-1]),
   # [38] Loan changes - rewritten to display capital.
-  K ~ (L - L[-1]) + pe * (E - E[-1]) + FU + K[-1]
+  K ~ (L - L[-1]) + pe * (E - E[-1]) + FU + K[-1],
   #----------------------------------#
-  # Banks and the central bank
+  # Banks
   #----------------------------------#
+  # [39] Demand for Bonds.
+  Bb ~ chi_1 * (Mc + Mo),
+  # [40] Reserve requirement.
+  HPb ~ chi_2 * (Mc + Mo),
+  # [41] Advancements from Central Bank - if internal funds are
+  # not sufficient to cover for demand for loans the banks gets
+  # advances from the central bank.
+  A ~ L + HPb + Bb + MOo - (Mc + Mo),
+  # [42] Interest rates on loans.
+  rl ~ ra + spread_1,
+  # [43] Interest rates on mortgages.
+  rmo ~ ra + spread_2,
+  # [44] Interest rates on deposits.
+  rm ~ ra + spread_3,
+  # [45] Banks distribute all profits.
+  FB ~ rl[-1] * L[-1] + rb[-1] * Bb[-1] + rmo[-1] * MOo[-1] -
+    (rm[-1] * (Mc[-1] + Mo[-1]) + ra[-1] * A[-1]),
+  #----------------------------------#
+  # Central bank
+  #----------------------------------#
+  # [46] Accommodates demand for advances and buys bonds that are
+  # not absorbed by Households and Banks.
+  Bc ~ B - Bh - Bb,
+  # [47] Interest income is redistributed to the government.
+  FC ~ ra[-1] * A[-1] + rb[-1] * Bc[-1],
+  #----------------------------------#
+  # Government
+  #----------------------------------#
+  # [48] Deficit -  Collects taxes production, wages, and profits,
+  # and any deficit is financed by issuing bonds.
+  GD ~ (G + rb[-1] * B[-1]) - (IT + DT + TF + FC),
+  # [49] Taxes on production.
+  IT ~ tau * S,
+  # [50] Tax on capitalists.
+  Tdc ~ tau_d * wc * Nc,
+  # [51] Tax on workers.
+  Tdo ~ tau_d * wo * No,
+  # [52] Total tax from wages.
+  Td ~ Tdc + Tdo,
+  # [53] Tax on profits.
+  TF ~ tau_f * FT,
+  # [54] New bonds issued.
+  B ~ GD + B[-1],
+  # [55] Government spending deflator.
+  G ~ g * p,
+  # [56] Government spending.
+  g ~ g[-1] * (1 + y_e),
+  #----------------------------------#
+  # The housing market
+  #----------------------------------#
+  # Demand for houses is laid down for capitalists and
+  # workers in equations [13] and [26].
+  # [57] Number of unsold homes - changes when the number of
+  # newly built homes exceed the demand for homes.
+  HU ~ (HN - (Hc - Hc[-1])-(Ho - Ho[-1])) + HU[-1],
+  # [58] Supply of new homes - is a function of expected demand 
+  # and past capital gains.
+  HN ~ v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * ()
+
   
   
 )
