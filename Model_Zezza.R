@@ -65,13 +65,13 @@ model_eqs <- sfcr_set(
          (lambda_20 - lambda_21 * rrm + lambda_22 * 
             rre_e - lambda_23 * (Yc_e/V_e) - lambda_24 *
             rrb - lambda_25 * rrh_e)
-  ) * pe,
+  ) / pe,
   # [13] Homes.
   Hc ~ ((Vc_e - HPc) * 
           (lambda_30 - lambda_31 * rrm - lambda_32 * 
              rre_e - lambda_33 * (Yc_e/V_e) - lambda_34 *
              rrb + lambda_35 * rrh_e)
-  ) * ph,
+  ) / ph,
   # [14] Return on equities - Given by distributed profits and expected capital gains.
   re ~ (FD + CGE_e)/(pe[-1] * E[-1]),
   # [15] Return on Housing - Given by rents and expected capital gains.
@@ -129,14 +129,12 @@ model_eqs <- sfcr_set(
   k ~ ((iota_0 + iota_1 * FU[-1]/K_1[-1] - iota_2 * rll[-1] * 
     (L[-1]/K[-1]) + iota_3 * (pe[-1] * E[-1]/K[-1]) +
     iota_4 * u[-1]) * k[-1]) + k[-1],
-  # [30h] Capital from one periods ago.
-  K_1 ~ K[-1],
   # [31] Prices - are set with a mark-up on wages.
   p ~ (1 + rho) * wage/(prod * (1 - tau)),
   # [32] Total Profits - are determined relative to the wage bill.
   FT ~ rho * WB,
   # [33] Distributed Profits - fixed share net of taxes and interest payments
-  # is ditributed to capitalists.
+  # is distributed to capitalists.
   FD ~ (1 - beta) * (FT - rl[-1] * L[-1] - TF),
   # [34] Mark-up - depends on relative strength of workers and capitalists.
   rho ~ ((rho_1 * (prodg - wo_) + 1)/(1 + rho[-1])) - 1,
@@ -146,9 +144,11 @@ model_eqs <- sfcr_set(
   # [36] Retained Profits.
   FU ~ FT -rl[-1] * L[-1] - FD - TF,
   # [37] New equities issued.
-  pe ~ (xi * ((K - K[-1]) - FU)) / (E - E[-1]),
+  pe ~ ((xi * ((K - K[-1]) - FU)) / (E - E[-1])),
   # [38] Loan changes - rewritten to display capital.
   K ~ (L - L[-1]) + pe * (E - E[-1]) + FU + K[-1],
+  # [30h] Capital from one periods ago.
+  K_1 ~ K[-1],
   #----------------------------------#
   # Banks
   #----------------------------------#
@@ -166,7 +166,7 @@ model_eqs <- sfcr_set(
   rmo ~ ra + spread_2,
   # [44] Interest rates on deposits.
   rm ~ ra + spread_3,
-  # [45] Banks distribute all profits.
+  # [45] Banks profits, all distributed.
   FB ~ rl[-1] * L[-1] + rb[-1] * Bb[-1] + rmo[-1] * MOo[-1] -
     (rm[-1] * (Mc[-1] + Mo[-1]) + ra[-1] * A[-1]),
   #----------------------------------#
@@ -209,9 +209,28 @@ model_eqs <- sfcr_set(
   HU ~ (HN - (Hc - Hc[-1])-(Ho - Ho[-1])) + HU[-1],
   # [58] Supply of new homes - is a function of expected demand 
   # and past capital gains.
-  HN ~ v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * ()
-
-  
+  HN ~ v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_1 - ph_1[-1]),
+  # [58h] Helper for ph.
+  ph_1 ~ ph[-1],
+  # [59] Market price of Homes.
+  ph ~ (-v_3 * (HU - HU[-1]) * ph[-1]) + ph[-1],
+  #----------------------------------#
+  # Aggregate demand, un-/employment, wages
+  #----------------------------------#
+  # [60] Aggregate Demand -  Sales
+  s ~ cc + co + (k - k[-1]) * p + HN * p + g,
+  # [61] Aggregate Demand deflator.
+  S ~ s * p,
+  # [62] Number of workers
+  N ~ s/prod,
+  # [63] Share of capitalists
+  Nc ~ omega_c * N,
+  # [64] Share of workers
+  No ~ N - Nc,
+  # [65] growth in real income
+  y ~ ((s/s[-1]-1)*y[-1]) + y[-1],
+  # [66] Unemployment rate
+  ur ~ -psi + (((y-y[-1])/y[-1]) - y_n)
   
 )
 
