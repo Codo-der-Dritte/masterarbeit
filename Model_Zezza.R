@@ -229,9 +229,44 @@ model_eqs <- sfcr_set(
   No ~ N - Nc,
   # [65] growth in real income
   y ~ ((s/s[-1]-1)*y[-1]) + y[-1],
-  # [66] Unemployment rate
-  ur ~ -psi + (((y-y[-1])/y[-1]) - y_n)
+  # [66] Unemployment rate - Follows some sort of Okun's laws
+  ur ~ -psi * (((y-y[-1])/y[-1]) - y_n) + ur[-1],
+  # [67] Wage Bill - All wages paid out.
+  WB ~ (wc * omega_c + wo * (1 - omega_c)) * N,
+  # [68] Wage for capitalists.
+  wc ~ wc[-1] * (1 + (wc_g)),
+  # [69] Wage for workers.
+  wo ~ wo[-1] * (1 + (wo_g )),
+  # [70] Wage growth for capitalists.
+  wc_g ~   omega * prodg_e,
+  # [71] Wage growth for workers.
+  wo_g ~   omega * prodg_e,
+  # [72] Omega,
+  omega ~ -2 * ur,
+  # [73] Productivity gains.
+  prodg ~ pi_0 - pi_1 * u,
+  #----------------------------------#
+  # Expectations X_e = X[-1] + sigma * (X_e[-1] - X[-1])
+  #----------------------------------#
+  # [74] Expected inflation
   
+  # [75] Expected productivity growth
+  
+  # [76] Expected income growth
+  
+  # [77] Expected worker income
+  
+  # [78] Expected capitalist income
+  
+  # [79] Expected capital gains for homes (workers)
+  
+  # [80] Expected capital gains for homes (capitalists)
+  
+  # [81] Expected capital gains on equities
+  
+  # [82] Expected wealth for capitalists.
+  
+  # [83] Expected wealth for
 )
 
 # Take a look at the Directed acyclic graph
