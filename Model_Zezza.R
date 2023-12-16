@@ -255,18 +255,33 @@ model_eqs <- sfcr_set(
   # [76] Expected income growth
   
   # [77] Expected worker income
-  
+  Yo_e ~ Yo[-1] + sigma * (Yo_e[-1] - Yo[-1]),
   # [78] Expected capitalist income
-  
-  # [79] Expected capital gains for homes (workers)
-  
-  # [80] Expected capital gains for homes (capitalists)
-  
+  Yc_e ~ Yc[-1] + sigma * (Yc_e[-1] - Yc[-1]),
+  # [780] Expected capitalist income
+  yc_e ~ Yc / p,
+  # [79] Expected capital gains for homes (capitalists)
+  CGHc_e ~ CGHc[-1] + sigma * (CGHc_e[-1] - CGHc[-1]),
+  # [79p] Expected capital gains for homes (capitalists)
+  cghc_e ~ CGHc_e / p,
+  # [80] Expected capital gains for homes (workers)
+  CGHo_e ~ CGHo[-1] + sigma * (CGHo_e[-1] - CGHo[-1]),
+  # [80] Expected capital gains for homes (workers)
+  cgho_e ~ CGHo_e / p,
   # [81] Expected capital gains on equities
-  
+  CGE_e ~ CGE[-1] + sigma * (CGE_e[-1] - CGE[-1]),
+  # [81p] Expected real capital gains on equities
+  cge_e ~ CGE_e / p,
   # [82] Expected wealth for capitalists.
-  
-  # [83] Expected wealth for
+  Vc_e ~ Vc[-1] + sigma * (Vc_e[-1] - Vc[-1]),
+  # [83] Expected return on equities
+  re_e ~ re[-1] + sigma * (re_e[-1] - re[-1]),
+  # [83p] Expected real return on equities
+  rre_e ~ re_e / p,
+  # [84] Expected return on equities
+  rh_e ~ rh[-1] + sigma * (rh_e[-1] - rh[-1]),
+  # [84p] Expected real return on equities
+  rrh_e ~ rh_e / p,
 )
 
 # Take a look at the Directed acyclic graph
