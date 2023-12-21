@@ -116,7 +116,7 @@ model_eqs <- sfcr_set(
   # [26h] Change debt repayment ratio.
   delta_debt_rep ~ debt_rep - debt_rep[-1],
   # [27] Change in Mortgages
-  MOo ~ (ph * (Ho - Ho[-1]) - Sho - morp * MOo[-1]) + MOo[-1],
+  MO ~ (ph * (Ho - Ho[-1]) - Sho - morp * MO[-1]) + MO[-1],
   # [28] Share of rented homes owned by capitalist.
   Rents ~ rent * Hc[-1],
   # [29] Rent increases
@@ -146,9 +146,13 @@ model_eqs <- sfcr_set(
   # [37] New equities issued.
   pe ~ ((xi * ((K - K[-1]) - FU)) / (E - E[-1])),
   # [38] Loan changes - rewritten to display capital.
-  K ~ (L - L[-1]) + pe * (E - E[-1]) + FU + K[-1],
+  L ~ ((K - K[-1]) - FU - pe * (E - E[-1])) + L[-1],
+  # [30h] Capital in non real terms.
+  K ~ k * p,
   # [30h] Capital from one periods ago.
   K_1 ~ K[-1],
+  # [Memo] Firms wealth.
+  Vf ~ p * K + HU * ph - L - pe * E,
   #----------------------------------#
   # Banks
   #----------------------------------#
@@ -159,7 +163,7 @@ model_eqs <- sfcr_set(
   # [41] Advancements from Central Bank - if internal funds are
   # not sufficient to cover for demand for loans the banks gets
   # advances from the central bank.
-  A ~ L + HPb + Bb + MOo - (Mc + Mo),
+  A ~ L + HPb + Bb + MO - (Mc + Mo),
   # [42] Interest rates on loans.
   rl ~ ra + spread_1,
   # [43] Interest rates on mortgages.
@@ -167,7 +171,7 @@ model_eqs <- sfcr_set(
   # [44] Interest rates on deposits.
   rm ~ ra + spread_3,
   # [45] Banks profits, all distributed.
-  FB ~ rl[-1] * L[-1] + rb[-1] * Bb[-1] + rmo[-1] * MOo[-1] -
+  FB ~ rl[-1] * L[-1] + rb[-1] * Bb[-1] + rmo[-1] * MO[-1] -
     (rm[-1] * (Mc[-1] + Mo[-1]) + ra[-1] * A[-1]),
   #----------------------------------#
   # Central bank
@@ -249,11 +253,11 @@ model_eqs <- sfcr_set(
   # Expectations X_e = X[-1] + sigma * (X_e[-1] - X[-1])
   #----------------------------------#
   # [74] Expected inflation
-  
+  p_e ~ p[-1] + sigma * (p_e[-1] - p[-1]),
   # [75] Expected productivity growth
-  
+  prodg_e ~ prodg[-1] + sigma * (prodg_e[-1] - prodg[-1]),
   # [76] Expected income growth
-  
+  #missing
   # [77] Expected worker income
   Yo_e ~ Yo[-1] + sigma * (Yo_e[-1] - Yo[-1]),
   # [78] Expected capitalist income
@@ -290,8 +294,6 @@ sfcr_dag_blocks_plot(model_eqs)
 sfcr_dag_cycles_plot(model_eqs)
 # Set up parameter and initial conditions
 
-
-
 bs_zezza <- sfcr_matrix(
   columns = c("Household (Top 5%)" ,"Household (Bottom 95%)", "Firms", "Banks", "Central Bank", "Government", "Sum"),
   codes = c("h5", "h95", "f", "b", "cb", "g", "s"),
@@ -304,32 +306,47 @@ bs_zezza <- sfcr_matrix(
   r7 = c("Mortgages", h95 = "-MO", b = "+MO"),
   r8 = c("Treasuries", h5 = "+B_h", b = "+B_b", cb = "+B_cb", g = "-B"),
   r9 = c("Equities", h5 = "+pe * E", f = "-pe * E"),
-  r10 = c("Balance", h5 = "+Vc", h95 = "+Vo", f = "+Vf", b = 0, cb = 0, g = "-B", s = "+p * K")
+  r10 = c("Balance", h5 = "-Vc", h95 = "-Vo", f = "-Vf", g = "GD", s = "-(p * K + ph * H)")
 )
 
 sfcr_matrix_display(bs_zezza, "bs")
 
 tfm_zezza <- sfcr_matrix(
-
+  columns = c("Household (Top 5%)" ,"Household (Bottom 95%)", "Firms Cur.", "Firms Cap.", "Banks", "Central Bank", "Government", "Production"),
+  codes = c("h5", "h95", "fcu", "fca", "b", "cb", "g", "prod"),
+  r1 = c("Wages", h5 = "+WBc", h95 = "+WBo", prod = "-WB"),
+  r2 = c("Consumption", h5 = "-p * Cc", h95 = "-p * Co", prod = "+p * C"),
+  r3 = c("Profit Firms", h5 = "+FD", fcu = "+FT", fca = "+FU", prod = "-FT"),
+  r4 = c("Profit Banks", h5 = "+FB", b = "-FB"),
+  r5 = c("Profit Central Bank", cb = "-FC", g = "+FC"),
+  r6 = c("Rents", h5 = "+Rents", h95 = "-Rents"),
+  r7 = c("Government Spending", g = "-p * G", prod = "+p * G"),
+  r8 = c("Taxes", h5 = "-TDc", h95 = "-TDo", fcu = "-TF", g = "T", prod = "-IT"),
+  r9 = c("Investment in productive capital", fca = "+(K - K[-1]) * p", prod = "-(K - K[-1]) * p"),
+  r10 = c("Investment in Housing", fca = "+(HN - HN[-1]) * ph", prod = "-(HN - HN[-1]) * ph"),
+  r11 = c("Interest on Deposits", h5 = "+rm[-1]*Mc[-1]", h95 = "+rm[-1]*Mo[-1]", b = "-rm[-1]*M[-1]"),
+  r12 = c("Interest on Advances", b = "-ra[-1]*A[-1]", cb = "+ra[-1]*A[-1]"),
+  r13 = c("Interest on Loans", fcu = "-rl[-1]*L[-1]", b = "+rl[-1]*L[-1]"),
+  r14 = c("Interest on Mortgages", h95 = "-rmo[-1]*MO[-1]", b = "+rmo[-1]*MO[-1]"),
+  r15 = c("Interest on Bills", h5 = "+rb[-1]*Bh[-1]", b = "+rb[-1]*Bb[-1]", cb = "+rb[-1]*Bcb[-1]", g = "-rb[-1]*B[-1]"),
+  r16 = c("Change in Cash", h5 = "-(HP_hc - HP_hc[-1])", h95 = "-(HP_ho - HP_ho[-1])", b = "-(HP_b - HP_b[-1])", cb = "+(HP - HP[-1])"),
+  r17 = c("Change in Deposits", h5 = "-(Mc - Mc[-1])", h95 = "-(Mo - Mo[-1])", b = "+(M - M[-1])"),
+  r18 = c("Change in Loans", fca = "+(L - L[-1])", b = "-(L - L[-1])"),
+  r19 = c("Change in Mortgages", h95 = "+(MO - MO[-1])", b = "-(MO - MO[-1])"),
+  r20 = c("Change in Bills", h5 = "-(Bh - Bh[-1])", b = "-(Bb - Bb[-1])", cb = "-(Bcb - Bcb[-1])", g = "+(B - B[-1])"),
+  r21 = c("Change in Advances", b = "+(A - A[-1])", cb = "-(A - A[-1])"),
+  r22 = c("Change in Equities", h5 = "-(E - E[-1]) * pe", fca = "+(E - E[-1]) * pe")
 )
-
-sfcr_matrix_display(tfm_zezza)
-
+sfcr_matrix_display(tfm_zezza, "tfm")
 
 
 model_para <- sfcr_set(
   
   # Parameters
-  alpha1 ~ 0.6, # Consumption YD
-  alpha2 ~ 0.4, # Consumption V
-  theta ~ 0.2, # Taxes
-  lambda0 ~ 0.635, # Ratio of Bonds in wealth of households
-  lambda1 ~ 0.05, # Parameter to interest rate
-  lambda2 ~ 0.01, # Parameter to YD to V ratio
+
   
   # Exogenous variables
-  r ~ 0.025,
-  G ~ 20
+
 )
 
 # Create the Baseline (Policy Steady state)
@@ -338,7 +355,7 @@ model_sim <- sfcr_baseline(
   equations = model_eqs,
   external = model_para,
   periods = 100,
-  hidden = c("Hh" = "Hs")
+  
 )
 
 # Check Model for consisteny
