@@ -249,6 +249,10 @@ model_eqs <- sfcr_set(
   omega ~ -2 * ur,
   # [73] Productivity gains.
   prodg ~ pi_0 - pi_1 * u,
+  # Accounting MEMO
+  WBo ~ wo * No,
+  WBc ~ WB - WBo,
+  
   #----------------------------------#
   # Expectations X_e = X[-1] + sigma * (X_e[-1] - X[-1])
   #----------------------------------#
@@ -257,7 +261,7 @@ model_eqs <- sfcr_set(
   # [75] Expected productivity growth
   prodg_e ~ prodg[-1] + sigma * (prodg_e[-1] - prodg[-1]),
   # [76] Expected income growth
-  #missing
+  #missing,
   # [77] Expected worker income
   Yo_e ~ Yo[-1] + sigma * (Yo_e[-1] - Yo[-1]),
   # [78] Expected capitalist income
@@ -299,14 +303,14 @@ bs_zezza <- sfcr_matrix(
   codes = c("h5", "h95", "f", "b", "cb", "g", "s"),
   r1 = c("Productive Capital", f = "+p * K", s = "+p * K"),
   r2 = c("Homes", h5 = "+ph * Hc", h95 = "+ph * Ho", f = "+ph * HU", s = "+ph * H"),
-  r3 = c("Cash", h5 = "+HP_hc", h95 = "+HP_ho", b = "+HP_b", cb = "-HP"),
+  r3 = c("Cash", h5 = "+HPhc", h95 = "+HPho", b = "+HPb", cb = "-HP"),
   r4 = c("CB Advances", b = "-A", cb = "+A"),
-  r5 = c("Bank deposits", h5 = "+M_c", h95 = "+M_o", b = "-M"),
+  r5 = c("Bank deposits", h5 = "+Mc", h95 = "+Mo", b = "-M"),
   r6 = c("Loans to firms", f = "-L", b = "+L"),
   r7 = c("Mortgages", h95 = "-MO", b = "+MO"),
-  r8 = c("Treasuries", h5 = "+B_h", b = "+B_b", cb = "+B_cb", g = "-B"),
+  r8 = c("Treasuries", h5 = "+Bh", b = "+Bb", cb = "+Bcb", g = "-B"),
   r9 = c("Equities", h5 = "+pe * E", f = "-pe * E"),
-  r10 = c("Balance", h5 = "-Vc", h95 = "-Vo", f = "-Vf", g = "GD", s = "-(p * K + ph * H)")
+  r10 = c("Balance", h5 = "-Vc", h95 = "-Vo", f = "-Vf", g = "+GD", s = "+(p * K + ph * H)")
 )
 
 sfcr_matrix_display(bs_zezza, "bs")
@@ -321,7 +325,7 @@ tfm_zezza <- sfcr_matrix(
   r5 = c("Profit Central Bank", cb = "-FC", g = "+FC"),
   r6 = c("Rents", h5 = "+Rents", h95 = "-Rents"),
   r7 = c("Government Spending", g = "-p * G", prod = "+p * G"),
-  r8 = c("Taxes", h5 = "-TDc", h95 = "-TDo", fcu = "-TF", g = "T", prod = "-IT"),
+  r8 = c("Taxes", h5 = "-TDc", h95 = "-TDo", fcu = "-TF", g = "+T", prod = "-IT"),
   r9 = c("Investment in productive capital", fca = "+(K - K[-1]) * p", prod = "-(K - K[-1]) * p"),
   r10 = c("Investment in Housing", fca = "+(HN - HN[-1]) * ph", prod = "-(HN - HN[-1]) * ph"),
   r11 = c("Interest on Deposits", h5 = "+rm[-1]*Mc[-1]", h95 = "+rm[-1]*Mo[-1]", b = "-rm[-1]*M[-1]"),
@@ -329,7 +333,7 @@ tfm_zezza <- sfcr_matrix(
   r13 = c("Interest on Loans", fcu = "-rl[-1]*L[-1]", b = "+rl[-1]*L[-1]"),
   r14 = c("Interest on Mortgages", h95 = "-rmo[-1]*MO[-1]", b = "+rmo[-1]*MO[-1]"),
   r15 = c("Interest on Bills", h5 = "+rb[-1]*Bh[-1]", b = "+rb[-1]*Bb[-1]", cb = "+rb[-1]*Bcb[-1]", g = "-rb[-1]*B[-1]"),
-  r16 = c("Change in Cash", h5 = "-(HP_hc - HP_hc[-1])", h95 = "-(HP_ho - HP_ho[-1])", b = "-(HP_b - HP_b[-1])", cb = "+(HP - HP[-1])"),
+  r16 = c("Change in Cash", h5 = "-(HPhc - HPhc[-1])", h95 = "-(HPho - HPho[-1])", b = "-(HPb - HPb[-1])", cb = "+(HP - HP[-1])"),
   r17 = c("Change in Deposits", h5 = "-(Mc - Mc[-1])", h95 = "-(Mo - Mo[-1])", b = "+(M - M[-1])"),
   r18 = c("Change in Loans", fca = "+(L - L[-1])", b = "-(L - L[-1])"),
   r19 = c("Change in Mortgages", h95 = "+(MO - MO[-1])", b = "-(MO - MO[-1])"),
@@ -339,19 +343,20 @@ tfm_zezza <- sfcr_matrix(
 )
 sfcr_matrix_display(tfm_zezza, "tfm")
 
+index <- sfcr_set_index(model_eqs)
+sfcr::sfcr_get_matrix(bs_zezza)
 
 model_para <- sfcr_set(
   
   # Parameters
 
-  
   # Exogenous variables
 
 )
 
 # Create the Baseline (Policy Steady state)
 
-model_sim <- sfcr_baseline(
+model_zezza <- sfcr_baseline(
   equations = model_eqs,
   external = model_para,
   periods = 100,
