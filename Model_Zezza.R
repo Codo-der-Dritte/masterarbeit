@@ -39,7 +39,7 @@ model_eqs <- sfcr_set(
   Cc ~ cc * p,
   # [4] Consumption - depend on expected disposable income, the open stock of wealth  and
   # expected capital gains, all measured in real terms.
-  cc ~ alpha_1c * y_e + alpha_2c * vc[-1] + alpha_3c * 
+  cc ~ alpha_1c * yc_e + alpha_2c * vc[-1] + alpha_3c * 
     (cge_e + cghc_e - p_e * vc[-1]/(1 + p_e)),
   # [5] Stock of Wealth - includes saving and capitals gains which are given from changes in
   # market price for equities [7] and homes [8].
@@ -61,11 +61,11 @@ model_eqs <- sfcr_set(
        rre_e - lambda_13 * (Yc_e/Vc_e) + lambda_14 *
        rrb - lambda_15 * rrh_e),
   # [12] Equities.
-  E ~ ((Vc_e - HPc) * 
+  pe ~ ((Vc_e - HPc) * 
          (lambda_20 - lambda_21 * rrm + lambda_22 * 
             rre_e - lambda_23 * (Yc_e/V_e) - lambda_24 *
             rrb - lambda_25 * rrh_e)
-  ) / pe,
+  ) / E,
   # [13] Homes.
   Hc ~ ((Vc_e - HPc) * 
           (lambda_30 - lambda_31 * rrm - lambda_32 * 
@@ -106,17 +106,21 @@ model_eqs <- sfcr_set(
   # [24] Cash - depends on current consumption.
   HPo ~ eta * Co,
   # [25] Bank deposits - residual.
-  Mo ~ Vo - HPo - ph * Ho,
+  Mo ~ Vo - HPo - ph * Ho + (MOo - MOo[-1]),
   # [26] Demand for Homes - depends on population growth,
   # expected real income and lagged debt repayment ratios.
-  Ho ~ (No - No[-1])/No[-1] - mu_1 * ((yo_e - yo_e[-1])/yo_e) -
-    mu_2 * delta_debt_rep[-1],
+  Ho ~ (((No - No[-1])/No[-1] + mu_1 * ((yo_e - yo_e[-1])/yo_e) -
+    mu_2 * delta_debt_rep[-1]) * Ho[-1]) + Ho[-1],
   # [26h] Debt repayment ratio.
-  debt_rep ~ ((rmo[-1]+morp) * Mo[-1]/Yo),
-  # [26h] Change debt repayment ratio.
+  debt_rep ~ (rmo[-1] + morp) * Mo_1[-1] / Yo,
+  # [26h] Change in debt repayment.
   delta_debt_rep ~ debt_rep - debt_rep[-1],
-  # [27] Change in Mortgages
-  MO ~ (ph * (Ho - Ho[-1]) - Sho - morp * MO[-1]) + MO[-1],
+  # [26h] Mo lag1
+  Mo_1 ~ Mo[-1],
+  # [27] Mortgages.
+  MOo ~ (MOo[-1] * (1 - morp) + 
+          ifelse((ph * (Ho - Ho[-1]) - Sho) > 0, 1, 0) * 
+          (ph * (Ho - Ho[-1]) - Sho)) + MOo[-1],
   # [28] Share of rented homes owned by capitalist.
   Rents ~ rent * Hc[-1],
   # [29] Rent increases
@@ -124,11 +128,20 @@ model_eqs <- sfcr_set(
   #----------------------------------#
   # Nonfinancial firms
   #----------------------------------#
-  # [30] Investment decision - depends on actual profits, Tobin's q,
+  # [30] Investment decision - Growth of k depends on actual profits, Tobin's q,
   # borrowing costs from banks and utilization rate.
-  k ~ ((iota_0 + iota_1 * FU[-1]/K_1[-1] - iota_2 * rll[-1] * 
-    (L[-1]/K[-1]) + iota_3 * (pe[-1] * E[-1]/K[-1]) +
-    iota_4 * u[-1]) * k[-1]) + k[-1],
+  delta_k ~ (iota_0 + iota_1 * FU[-1]/K_1[-1] - 
+          iota_2 * rll[-1] * lev[-1] +
+          iota_3 * q[-1] +
+          iota_4 * u[-1] - unorm),
+  # [30h] Leverage.
+  lev ~ L/K,
+  # [30h] Tobin's Q.
+  q ~ pe * E/K,
+  # [30h] Real Capital.
+  k ~ (1 + delta_k) * k[-1],
+  # [30h] Real Investment,
+  i ~ k - k[-1],
   # [31] Prices - are set with a mark-up on wages.
   p ~ (1 + rho) * wage/(prod * (1 - tau)),
   # [32] Total Profits - are determined relative to the wage bill.
@@ -137,16 +150,18 @@ model_eqs <- sfcr_set(
   # is distributed to capitalists.
   FD ~ (1 - beta) * (FT - rl[-1] * L[-1] - TF),
   # [34] Mark-up - depends on relative strength of workers and capitalists.
-  rho ~ ((rho_1 * (prodg - wo_) + 1)/(1 + rho[-1])) - 1,
+  rho ~ ((rho_1 * (prodg - wo_gh) + 1)(1 + rho[-1])) - 1,
   # [35] Utilization rate - ratio of real sales to "normal" sales, which in
   # turn are in a fixed ratio (lambda) to the stock of real capital.
-  u ~ s/(lambda * k[-1]),
+  u ~ s/sfc,
+  # [35h] Normal Sales - fixed ratio of real capital.
+  sfc ~ (lambda * k[-1]),
   # [36] Retained Profits.
-  FU ~ FT -rl[-1] * L[-1] - FD - TF,
+  FU ~ FT - rl[-1] * L[-1] - FD - TF,
   # [37] New equities issued.
-  pe ~ ((xi * ((K - K[-1]) - FU)) / (E - E[-1])),
+  E ~ E[-1] + xi * (i - FU) / pe
   # [38] Loan changes - rewritten to display capital.
-  L ~ ((K - K[-1]) - FU - pe * (E - E[-1])) + L[-1],
+  L ~ L[-1] + i - FU - pe * (E - E[-1]),
   # [30h] Capital in non real terms.
   K ~ k * p,
   # [30h] Capital from one periods ago.
@@ -156,14 +171,16 @@ model_eqs <- sfcr_set(
   #----------------------------------#
   # Banks
   #----------------------------------#
+  # [39h] Deposits.
+  M ~ Mo + Mc,
   # [39] Demand for Bonds.
-  Bb ~ chi_1 * (Mc + Mo),
+  Bb ~ chi_1 * M,
   # [40] Reserve requirement.
-  HPb ~ chi_2 * (Mc + Mo),
+  HPb ~ chi_2 * M,
   # [41] Advancements from Central Bank - if internal funds are
   # not sufficient to cover for demand for loans the banks gets
   # advances from the central bank.
-  A ~ L + HPb + Bb + MO - (Mc + Mo),
+  A ~ L + HPb + Bb + MOo - M,
   # [42] Interest rates on loans.
   rl ~ ra + spread_1,
   # [43] Interest rates on mortgages.
@@ -171,8 +188,8 @@ model_eqs <- sfcr_set(
   # [44] Interest rates on deposits.
   rm ~ ra + spread_3,
   # [45] Banks profits, all distributed.
-  FB ~ rl[-1] * L[-1] + rb[-1] * Bb[-1] + rmo[-1] * MO[-1] -
-    (rm[-1] * (Mc[-1] + Mo[-1]) + ra[-1] * A[-1]),
+  FB ~ rl[-1] * L[-1] + rb[-1] * Bb[-1] + rmo[-1] * MOo[-1] -
+    (rm[-1] * M + ra[-1] * A[-1]),
   #----------------------------------#
   # Central bank
   #----------------------------------#
@@ -186,7 +203,7 @@ model_eqs <- sfcr_set(
   #----------------------------------#
   # [48] Deficit -  Collects taxes production, wages, and profits,
   # and any deficit is financed by issuing bonds.
-  GD ~ (G + rb[-1] * B[-1]) - (IT + DT + TF + FC),
+  GD ~ (G + rb[-1] * Bh[-1] + rb[-1] * Bc[-1] + rb[-1] * Bb[-1]) - (IT + DT + TF + FC),
   # [49] Taxes on production.
   IT ~ tau * S,
   # [50] Tax on capitalists.
@@ -198,10 +215,10 @@ model_eqs <- sfcr_set(
   # [53] Tax on profits.
   TF ~ tau_f * FT,
   # [54] New bonds issued.
-  B ~ GD + B[-1],
+  B ~ B[-1] + GD,
   # [55] Government spending deflator.
   G ~ g * p,
-  # [56] Government spending.
+  # [56] Real Government spending.
   g ~ g[-1] * (1 + y_e),
   #----------------------------------#
   # The housing market
@@ -209,11 +226,15 @@ model_eqs <- sfcr_set(
   # Demand for houses is laid down for capitalists and
   # workers in equations [13] and [26].
   # [57] Number of unsold homes - changes when the number of
-  # newly built homes exceed the demand for homes.
-  HU ~ (HN - (Hc - Hc[-1])-(Ho - Ho[-1])) + HU[-1],
+  # newly built homes exceed the demand for homes. Can't be negative.
+  HU ~ ifelse(((HU[-1] + HN - (Hc - Hc[-1])-(Ho - Ho[-1]))) > 0, 1, 0) *
+    ((HU[-1] + HN - (Hc - Hc[-1])-(Ho - Ho[-1]))) + 0,
   # [58] Supply of new homes - is a function of expected demand 
   # and past capital gains.
   HN ~ v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_1 - ph_1[-1]),
+  
+  nhd=((a1nh*(h1(-1))*grye+a1nh*dh2+a2nh*(ph(-3)-ph(-4)))>0)*
+    (a1nh*(h1(-1))*grye+a1nh*dh2+a2nh*(ph(-3)-ph(-4)))+0
   # [58h] Helper for ph.
   ph_1 ~ ph[-1],
   # [59] Market price of Homes.
