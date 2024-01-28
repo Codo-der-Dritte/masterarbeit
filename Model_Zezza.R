@@ -44,6 +44,8 @@ model_eqs <- sfcr_set(
   # [5] Stock of Wealth - includes saving and capitals gains which are given from changes in
   # market price for equities [7] and homes [8].
   Vc ~ Vc[-1] + Shc +  CGE + CGHc,
+  # [5p] Wealth deflator.
+  vc ~ Vc / p,
   # [6p] Disposable income deflator.
   yc ~ Yc / p,
   # [7] Changes in market price for equities -  Capital gains.
@@ -95,6 +97,8 @@ model_eqs <- sfcr_set(
     iec - alpha_4o * morp * MOo[-1]/Yo[-1],
   # [20] Wealth - Past wealth plus saving plus capital gains from homes.
   Vo ~ Vo[-1] + Sho + CGHo,
+  # [20p] Wealth deflator.
+  vo ~ Vo / p,
   # [21] Disposable income deflator.
   yo ~ Yo/p,
   # [22] Capital gains from homes.
@@ -133,7 +137,7 @@ model_eqs <- sfcr_set(
   delta_k ~ (iota_0 + iota_1 * FU[-1]/K_1[-1] - 
           iota_2 * rll[-1] * lev[-1] +
           iota_3 * q[-1] +
-          iota_4 * u[-1] - unorm),
+          iota_4 * ut[-1] - unorm),
   # [30h] Leverage.
   lev ~ L/K,
   # [30h] Tobin's Q.
@@ -150,16 +154,16 @@ model_eqs <- sfcr_set(
   # is distributed to capitalists.
   FD ~ (1 - beta) * (FT - rl[-1] * L[-1] - TF),
   # [34] Mark-up - depends on relative strength of workers and capitalists.
-  rho ~ ((rho_1 * (prodg - wo_gh) + 1)(1 + rho[-1])) - 1,
+  rho ~ ((rho_1 * (prodg - wo_g) + 1)*(1 + rho[-1])) - 1,
   # [35] Utilization rate - ratio of real sales to "normal" sales, which in
   # turn are in a fixed ratio (lambda) to the stock of real capital.
-  u ~ s/sfc,
+  ut ~ s/sfc,
   # [35h] Normal Sales - fixed ratio of real capital.
   sfc ~ (lambda * k[-1]),
   # [36] Retained Profits.
   FU ~ FT - rl[-1] * L[-1] - FD - TF,
   # [37] New equities issued.
-  E ~ E[-1] + xi * (i - FU) / pe
+  E ~ E[-1] + xi * (i - FU) / pe,
   # [38] Loan changes - rewritten to display capital.
   L ~ L[-1] + i - FU - pe * (E - E[-1]),
   # [30h] Capital in non real terms.
@@ -229,21 +233,40 @@ model_eqs <- sfcr_set(
   # newly built homes exceed the demand for homes. Can't be negative.
   HU ~ ifelse(((HU[-1] + HN - (Hc - Hc[-1])-(Ho - Ho[-1]))) > 0, 1, 0) *
     ((HU[-1] + HN - (Hc - Hc[-1])-(Ho - Ho[-1]))) + 0,
+  # [57] HU lag 1.
+  HU_1 ~ HU[-1],
   # [58] Supply of new homes - is a function of expected demand 
   # and past capital gains.
-  HN ~ v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_1 - ph_1[-1]),
-  
-  nhd=((a1nh*(h1(-1))*grye+a1nh*dh2+a2nh*(ph(-3)-ph(-4)))>0)*
-    (a1nh*(h1(-1))*grye+a1nh*dh2+a2nh*(ph(-3)-ph(-4)))+0
-  # [58h] Helper for ph.
+  HND ~ ifelse(v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_3 - ph_3[-1]) > 0, 1, 0)
+  * v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_3 - ph_3[-1]) + 0,
+  # [58h] Check for HND.
+  HN ~ ifelse(HND - HU[-1] > 0, 1, 0) * HND + 0,
+  # [58h] ph lag 1.
   ph_1 ~ ph[-1],
+  # [58h] ph lag 2.
+  ph_2 ~ ph_1[-1],
+  # [58h] ph lag 3.
+  ph_3 ~ ph_2[-1],
   # [59] Market price of Homes.
-  ph ~ (-v_3 * (HU - HU[-1]) * ph[-1]) + ph[-1],
+  ph ~ ifelse(HU < 10, 1, 0) * ph1 +
+    ifelse(HU >= 10, 1, 0) * ph2,
+  # [59h] Total supply of Houses.
+  HNS ~ HN + HU[-1],
+  # [59h] Helper for House prices ph2.
+  ph2 ~ ph(-1) - v_3 * (HU_1 - HU_1(-1)),
+  # [59h] Helper for House prices ph1.
+  ph1 ~ ph(-1) + ph(-1) * v_3 * (Hc(-1) * y_e + (Ho - Ho[-1]) - NHS(-1)),
   #----------------------------------#
   # Aggregate demand, un-/employment, wages
   #----------------------------------#
   # [60] Aggregate Demand -  Sales
-  s ~ cc + co + (k - k[-1]) * p + HN * p + g,
+  s ~ c + i + ih  + g,
+  # [60h] Helper for Aggregate Demand - total consumption.
+  c ~ cc + co,
+  # [60h] Real value of houses.
+  ih ~ NH * p,
+  # [60h] Nominal value of houses
+  IH ~ ih * p,
   # [61] Aggregate Demand deflator.
   S ~ s * p,
   # [62] Number of workers
@@ -253,32 +276,43 @@ model_eqs <- sfcr_set(
   # [64] Share of workers
   No ~ N - Nc,
   # [65] growth in real income
-  y ~ ((s/s[-1]-1)*y[-1]) + y[-1],
+  y ~ s/s[-1]-1,
   # [66] Unemployment rate - Follows some sort of Okun's laws
   ur ~ -psi * (((y-y[-1])/y[-1]) - y_n) + ur[-1],
   # [67] Wage Bill - All wages paid out.
-  WB ~ (wc * omega_c + wo * (1 - omega_c)) * N,
+  WB ~ w * N,
   # [68] Wage for capitalists.
   wc ~ wc[-1] * (1 + (wc_g)),
   # [69] Wage for workers.
-  wo ~ wo[-1] * (1 + (wo_g )),
-  # [70] Wage growth for capitalists.
-  wc_g ~   omega * prodg_e,
-  # [71] Wage growth for workers.
-  wo_g ~   omega * prodg_e,
+  wo ~ wo[-1] * (1 + (wo_g)),
+  # [68 + 69] Wage.
+  w ~ (wc * omega_c + wo * (1 - omega_c)),
+  # [70] Wage growth/inflation for capitalists.
+  wc_g ~ p_e + omega * prodg_e + shockwc_g,
+  # [71] Wage growth/inflation for workers.
+  wo_g ~ p_e + omega * prodg_e + shockwo_g,
+  # [xx] Inflation.
+  p_ ~ p / p[-1] - 1,
   # [72] Omega,
-  omega ~ -2 * ur,
+  omega ~ o0 - o2 * sqrt(ur1/o1),
   # [73] Productivity gains.
-  prodg ~ pi_0 - pi_1 * u,
+  prodg ~ pi_0 - pi_1 * u + shockprodg,
+  # [xx] Unemployment rate.
+  u ~ ifelse(ut - unorm > 0, 1, 0) * ((ut - unorm) / 100) + 0,
+  # [xx] Okuns law.
+  ur ~ ifelse(((ur[-1]) - (y - ny) / okun) < 0, 1, 0) * 0 +
+    ifelse(((ur[-1]) - (y - ny) / okun) > 0, 1, 0) * ((ur[-1]) - (y - ny) / okun),
+  ur1 ~ ifelse(ur <=0, 1, 0) * 0 +
+    ifelse(ur >= 0.2) * 0.2 +
+    ifelse(ur > 0 & ur < 0.2, 1, 0) * ur,
   # Accounting MEMO
   WBo ~ wo * No,
   WBc ~ WB - WBo,
-  
   #----------------------------------#
   # Expectations X_e = X[-1] + sigma * (X_e[-1] - X[-1])
   #----------------------------------#
   # [74] Expected inflation
-  p_e ~ p[-1] + sigma * (p_e[-1] - p[-1]),
+  p_e ~ p_[-1] + sigma_p_e * (p_e[-1] - p_[-1]),
   # [75] Expected productivity growth
   prodg_e ~ prodg[-1] + sigma * (prodg_e[-1] - prodg[-1]),
   # [76] Expected income growth
