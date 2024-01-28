@@ -56,7 +56,7 @@ model_eqs <- sfcr_set(
   # [9] Cash - depend on current consumption.
   HPc ~ eta * Cc,
   # [10] Bank deposits.
-  Mc ~ Vc - HPc - Bc - E * pe - ph * Hc,
+  Mc ~ Vc - HPc - Bh - E * pe - ph * Hc,
   # [11] Bonds.
   Bh ~ (Vc_e - HPc) * 
     (lambda_10 - lambda_11 * rrm  - lambda_12 * 
@@ -146,6 +146,8 @@ model_eqs <- sfcr_set(
   k ~ (1 + delta_k) * k[-1],
   # [30h] Real Investment,
   i ~ k - k[-1],
+  # [30h] Real rate on loans.
+  rll ~ (1 + rl) / (1 + p_e)-1,
   # [31] Prices - are set with a mark-up on wages.
   p ~ (1 + rho) * wage/(prod * (1 - tau)),
   # [32] Total Profits - are determined relative to the wage bill.
@@ -194,6 +196,9 @@ model_eqs <- sfcr_set(
   # [45] Banks profits, all distributed.
   FB ~ rl[-1] * L[-1] + rb[-1] * Bb[-1] + rmo[-1] * MOo[-1] -
     (rm[-1] * M + ra[-1] * A[-1]),
+  # [xxx] Rate on Advances.
+  ra ~ ( 1 + rra) * (1 + p_e) - 1,
+
   #----------------------------------#
   # Central bank
   #----------------------------------#
@@ -224,6 +229,8 @@ model_eqs <- sfcr_set(
   G ~ g * p,
   # [56] Real Government spending.
   g ~ g[-1] * (1 + y_e),
+  # [xx] Rate on bonds.
+  rb ~ (1 + rrb) * (1 + p_e)-1,
   #----------------------------------#
   # The housing market
   #----------------------------------#
@@ -314,37 +321,52 @@ model_eqs <- sfcr_set(
   # [74] Expected inflation
   p_e ~ p_[-1] + sigma_p_e * (p_e[-1] - p_[-1]),
   # [75] Expected productivity growth
-  prodg_e ~ prodg[-1] + sigma * (prodg_e[-1] - prodg[-1]),
+  prodg_e ~ prodg[-1] + sigma_pg * (prodg_e[-1] - prodg[-1]),
   # [76] Expected income growth
-  #missing,
-  # [77] Expected worker income
-  Yo_e ~ Yo[-1] + sigma * (Yo_e[-1] - Yo[-1]),
-  # [78] Expected capitalist income
-  Yc_e ~ Yc[-1] + sigma * (Yc_e[-1] - Yc[-1]),
-  # [780] Expected capitalist income
-  yc_e ~ Yc / p,
+  y_e ~ y[-1] + sigma_yg * (y_e[-1] - y[-1]),
+  # [77] Expected worker real income
+  yo_e ~ yo_e[-1] * (1 + y_e),
+  # [78] Expected capitalist real income.
+  yc_e ~ yc_e[-1] * (1 + y_e),
+  # [78] Expected capitalist nominal income.
+  Yc_e ~ Yc[-1] * (1 + y_e) * (1 + p_e),
   # [79] Expected capital gains for homes (capitalists)
-  CGHc_e ~ CGHc[-1] + sigma * (CGHc_e[-1] - CGHc[-1]),
+  CGHc_e ~ (ph_e - ph[-1]) * Hc[-1],
+  # [79h] Helper for Expected growth on capital gains for homes (capitalists).
+  phg_e ~ ph[-1] / ph_1[-1] -1 + sigma_pe *
+    (phg_e - (ph[-1] / ph_1[-1] -1)) * shockphg_e,
+  # [79h] ph lag 1,
+  ph_1 ~ ph[-1],
+  # [79h] Expected price of houses.
+  ph_e ~ ph[-1] * (1 + phg_e),
   # [79p] Expected capital gains for homes (capitalists)
-  cghc_e ~ CGHc_e / p,
+  cghc_e ~ (ph_e - ph[-1]) * Hc[-1] / p[-1] * (1 + p_e),
   # [80] Expected capital gains for homes (workers)
-  CGHo_e ~ CGHo[-1] + sigma * (CGHo_e[-1] - CGHo[-1]),
-  # [80] Expected capital gains for homes (workers)
-  cgho_e ~ CGHo_e / p,
+  CGHo_e ~ (ph_e - ph[-1]) * Ho[-1],
+  # [80p] Expected capital gains for homes (workers)
+  cgho_e ~ (ph_e - ph[-1]) * Ho[-1] / p[-1] * (1 + p_e),
   # [81] Expected capital gains on equities
-  CGE_e ~ CGE[-1] + sigma * (CGE_e[-1] - CGE[-1]),
+  CGE_e ~ (pe_e - pe[-1]) * E[-1],
+  # [81h] Helper for Expected growth of capital gains on equities.
+  peg_e ~ pe[-1] / pe_1[-1] -1 + sigma_pe *
+    (peg_e[-1] - (pe[-1] / pe_1[-1] -1)) * shockpeg_e,
+  # [81h] pe lag 1,
+  pe_1 ~ pe[-1],
+  # [81h] Expected price of equities.
+  pe_e ~ pe[-1] * (1 + peg_e),
   # [81p] Expected real capital gains on equities
-  cge_e ~ CGE_e / p,
+  cge_e ~ (pe_e - pe[-1]) * E[-1] / p[-1] * (1 + p_e),
   # [82] Expected wealth for capitalists.
-  Vc_e ~ Vc[-1] + sigma * (Vc_e[-1] - Vc[-1]),
+  Vc_e ~ Vc[-1] * (1 + y_e) - Cc + CGE_e + CGHc_e,
   # [83] Expected return on equities
   re_e ~ re[-1] + sigma * (re_e[-1] - re[-1]),
   # [83p] Expected real return on equities
-  rre_e ~ re_e / p,
-  # [84] Expected return on equities
+  rre_e ~ (1 + re_e) / (1 + p_e) -1,
+  # [84] Expected return on houses.
   rh_e ~ rh[-1] + sigma * (rh_e[-1] - rh[-1]),
-  # [84p] Expected real return on equities
-  rrh_e ~ rh_e / p,
+  # [84p] Expected real return on houses.
+  rrh_e ~ (1 + rh_e) / (1 + p_e) -1,
+
 )
 
 # Take a look at the Directed acyclic graph
@@ -399,7 +421,8 @@ tfm_zezza <- sfcr_matrix(
 sfcr_matrix_display(tfm_zezza, "tfm")
 
 index <- sfcr_set_index(model_eqs)
-sfcr::sfcr_get_matrix(bs_zezza)
+
+sfcr::sfcr_dag_blocks_plot(model_eqs)
 
 model_para <- sfcr_set(
   
