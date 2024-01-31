@@ -65,13 +65,13 @@ model_eqs <- sfcr_set(
   # [12] Equities.
   pe ~ ((Vc_e - HPc) * 
          (lambda_20 - lambda_21 * rrm + lambda_22 * 
-            rre_e - lambda_23 * (Yc_e/V_e) - lambda_24 *
-            rrb - lambda_25 * rrh_e)
-  ) / E,
+            rre_e - lambda_23 * (Yc_e/Vc_e) - lambda_24 *
+            rrb - lambda_25 * rrh_e) - x * (I-FU)
+  ) / E[-1],
   # [13] Homes.
   Hc ~ ((Vc_e - HPc) * 
           (lambda_30 - lambda_31 * rrm - lambda_32 * 
-             rre_e - lambda_33 * (Yc_e/V_e) - lambda_34 *
+             rre_e - lambda_33 * (Yc_e/Vc_e) - lambda_34 *
              rrb + lambda_35 * rrh_e)
   ) / ph,
   # [14] Return on equities - Given by distributed profits and expected capital gains.
@@ -92,7 +92,7 @@ model_eqs <- sfcr_set(
   # [19] Consumption - depends on expected real disposable income, past 
   # real wealth, and expected real capital gains on homes minus past
   # wealth normalized by expected inflation.
-  co ~ alpha_1o * yo_e + alpha_2o * vo[-1] + 
+  co ~ alpha_0o + alpha_1o * yo_e + alpha_2o * vo[-1] + 
     alpha_3o * (cgho_e - p_e * vo[-1]/(1 + p_e)) +
     iec - alpha_4o * morp * MOo[-1]/Yo[-1],
   # [20] Wealth - Past wealth plus saving plus capital gains from homes.
@@ -104,7 +104,7 @@ model_eqs <- sfcr_set(
   # [22] Capital gains from homes.
   CGHo ~ (ph - ph[-1]) * Ho[-1],
   # [23] Imitation paramter.
-  iec ~ alpha_4o * No * (cc[-1]/Nc - 
+  iec ~ im * No * (cc[-1]/Nc - 
                          co[-1]/No),
   #-----Portfolio Choice-----#
   # [24] Cash - depends on current consumption.
@@ -146,6 +146,8 @@ model_eqs <- sfcr_set(
   k ~ (1 + delta_k) * k[-1],
   # [30h] Real Investment,
   i ~ k - k[-1],
+  # [30h] Nominal Investment.
+  I ~ i * p,
   # [30h] Real rate on loans.
   rll ~ (1 + rl) / (1 + p_e)-1,
   # [31] Prices - are set with a mark-up on wages.
@@ -165,9 +167,9 @@ model_eqs <- sfcr_set(
   # [36] Retained Profits.
   FU ~ FT - rl[-1] * L[-1] - FD - TF,
   # [37] New equities issued.
-  E ~ E[-1] + xi * (i - FU) / pe,
+  E ~ E[-1] + xi * (I - FU) / pe,
   # [38] Loan changes - rewritten to display capital.
-  L ~ L[-1] + i - FU - pe * (E - E[-1]),
+  L ~ L[-1] + I - FU - pe * (E - E[-1]),
   # [30h] Capital in non real terms.
   K ~ k * p,
   # [30h] Capital from one periods ago.
@@ -204,15 +206,15 @@ model_eqs <- sfcr_set(
   #----------------------------------#
   # [46] Accommodates demand for advances and buys bonds that are
   # not absorbed by Households and Banks.
-  Bc ~ B - Bh - Bb,
+  Bcb ~ B - Bh - Bb,
   # [47] Interest income is redistributed to the government.
-  FC ~ ra[-1] * A[-1] + rb[-1] * Bc[-1],
+  FC ~ ra[-1] * A[-1] + rb[-1] * Bcb[-1],
   #----------------------------------#
   # Government
   #----------------------------------#
   # [48] Deficit -  Collects taxes production, wages, and profits,
   # and any deficit is financed by issuing bonds.
-  GD ~ (G + rb[-1] * Bh[-1] + rb[-1] * Bc[-1] + rb[-1] * Bb[-1]) - (IT + DT + TF + FC),
+  GD ~ (G + rb[-1] * Bh[-1] + rb[-1] * Bcb[-1] + rb[-1] * Bb[-1]) - (IT + DT + TF + FC),
   # [49] Taxes on production.
   IT ~ tau * S,
   # [50] Tax on capitalists.
