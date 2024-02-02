@@ -106,6 +106,12 @@ model_eqs <- sfcr_set(
   # [23] Imitation paramter.
   iec ~ im * No * (cc[-1]/Nc - 
                          co[-1]/No),
+  # [MEMO] Real income of households combined.
+  yc_yo ~ yc + yo,
+  # [MEMO] Nominal income of households combined.
+  Yc_Yo ~ yc_yo * p,
+  # [MEMO] Nominal consumption of households combined.
+  C ~ Cc + Co,
   #-----Portfolio Choice-----#
   # [24] Cash - depends on current consumption.
   HPo ~ eta * Co,
@@ -249,8 +255,6 @@ model_eqs <- sfcr_set(
   * (v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_3 - ph_3[-1])) + 0,
   # [58h] Check for HND.
   HN ~ ifelse(HND - HU[-1] > 0, 1, 0) * HND + 0,
-  # [58h] ph lag 1.
-  ph_1 ~ ph[-1],
   # [58h] ph lag 2.
   ph_2 ~ ph_1[-1],
   # [58h] ph lag 3.
@@ -284,7 +288,7 @@ model_eqs <- sfcr_set(
   # [64] Share of workers
   No ~ N - Nc,
   # [65] growth in real income
-  y ~ s/s[-1]-1,
+  y~ s/s[-1]-1,
   # [66] Unemployment rate - Follows some sort of Okun's laws
   ur ~ ifelse(((ur[-1]) - (y - ny) / okun) < 0, 1, 0) * 0 +
     ifelse(((ur[-1]) - (y - ny) / okun) > 0, 1, 0) * ((ur[-1]) - (y - ny) / okun),
@@ -433,10 +437,78 @@ sfcr::sfcr_dag_blocks_plot(model_eqs)
 
 model_para <- sfcr_set(
   
-  # Parameters
-
-  # Exogenous variables
-
+  CGH_e	~	0	,
+  alpha_1c	~	0.7	,
+  alpha_2c	~	0.025	,
+  alpha_3c	~	0.08	,
+  eta	~	0.2	,
+  lambda_10	~	0.5	,
+  lambda_11	~	0.45	,
+  lambda_12	~	0.25	,
+  lambda_13	~	0.01	,
+  lambda_14	~	0.25	,
+  lambda_15	~	0.05	,
+  rrb	~	0.03	,
+  lambda_20	~	0.18	,
+  lambda_21	~	0.3	,
+  lambda_22	~	0.25	,
+  lambda_23	~	0.01	,
+  lambda_24	~	0.1	,
+  lambda_25	~	0.05	,
+  xi	~	0.25	,
+  spread_1	~	0.005	,
+  spread_2	~	0.0025	,
+  spread_3	~	-0.025	,
+  morp	~	0.01	,
+  alpha_0o	~	0	,
+  alpha_1o	~	0.8	,
+  alpha_2o	~	0.025	,
+  alpha_3o	~	0.08	,
+  alpha_4o	~	10	,
+  im	~	0	,
+  iota_0	~	0.005	,
+  iota_1	~	2	,
+  iota_2	~	1	,
+  iota_3	~	0.2	,
+  iota_4	~	0.4	,
+  unorm	~	0.75	,
+  beta	~	0.1	,
+  lambda	~	1.3	,
+  rho_1	~	0.01	,
+  tau	~	0.1	,
+  chi_2	~	0.25	,
+  chi_1	~	0.6	,
+  rra	~	0.025	,
+  tau_f	~	0.4	,
+  tau_d	~	0.2	,
+  v_1	~	0.5	,
+  v_2	~	1	,
+  shockprodg	~	0	,
+  o_1	~	0.05	,
+  o_2	~	1	,
+  o_0	~	2	,
+  pi_0	~	0.02	,
+  pi_1	~	1	,
+  shockwc_g	~	0	,
+  shockwo_g	~	0	,
+  ny	~	0.0338	,
+  okun	~	3	,
+  sigma_p_e	~	0.75	,
+  sigma_pg	~	0.75	,
+  sigma_yg	~	0.75	,
+  sigma	~	0.75	,
+  phge	~	0	,
+  sigma_pe	~	0.75	,
+  shockphg_e	~	0	,
+  lambda_30	~	0.18	,
+  lambda_31	~	0.45	,
+  lambda_32	~	0.25	,
+  lambda_33	~	0.01	,
+  lambda_34	~	0.25	,
+  lambda_35	~	0.1	,
+  rrm	~	0.02	,
+  v_3	~	0.0005	,
+  shockpeg_e	~	0
 )
 
 # Create the Baseline (Policy Steady state)
