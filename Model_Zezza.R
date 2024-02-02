@@ -151,7 +151,7 @@ model_eqs <- sfcr_set(
   # [30h] Real rate on loans.
   rll ~ (1 + rl) / (1 + p_e)-1,
   # [31] Prices - are set with a mark-up on wages.
-  p ~ (1 + rho) * wage/(prod * (1 - tau)),
+  p ~ (1 + rho) * w/(prod * (1 - tau)),
   # [32] Total Profits - are determined relative to the wage bill.
   FT ~ rho * WB,
   # [33] Distributed Profits - fixed share net of taxes and interest payments
@@ -198,9 +198,6 @@ model_eqs <- sfcr_set(
   # [45] Banks profits, all distributed.
   FB ~ rl[-1] * L[-1] + rb[-1] * Bb[-1] + rmo[-1] * MOo[-1] -
     (rm[-1] * M + ra[-1] * A[-1]),
-  # [xxx] Rate on Advances.
-  ra ~ ( 1 + rra) * (1 + p_e) - 1,
-
   #----------------------------------#
   # Central bank
   #----------------------------------#
@@ -209,6 +206,8 @@ model_eqs <- sfcr_set(
   Bcb ~ B - Bh - Bb,
   # [47] Interest income is redistributed to the government.
   FC ~ ra[-1] * A[-1] + rb[-1] * Bcb[-1],
+  # [xxx] Rate on Advances.
+  ra ~ ( 1 + rra) * (1 + p_e) - 1,
   #----------------------------------#
   # Government
   #----------------------------------#
@@ -247,7 +246,7 @@ model_eqs <- sfcr_set(
   # [58] Supply of new homes - is a function of expected demand 
   # and past capital gains.
   HND ~ ifelse(v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_3 - ph_3[-1]) > 0, 1, 0)
-  * v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_3 - ph_3[-1]) + 0,
+  * (v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) + v_2 * (ph_3 - ph_3[-1])) + 0,
   # [58h] Check for HND.
   HN ~ ifelse(HND - HU[-1] > 0, 1, 0) * HND + 0,
   # [58h] ph lag 1.
@@ -287,7 +286,12 @@ model_eqs <- sfcr_set(
   # [65] growth in real income
   y ~ s/s[-1]-1,
   # [66] Unemployment rate - Follows some sort of Okun's laws
-  ur ~ -psi * (((y-y[-1])/y[-1]) - y_n) + ur[-1],
+  ur ~ ifelse(((ur[-1]) - (y - ny) / okun) < 0, 1, 0) * 0 +
+    ifelse(((ur[-1]) - (y - ny) / okun) > 0, 1, 0) * ((ur[-1]) - (y - ny) / okun),
+  # [66h] helper for ur.
+  ur1 ~ ifelse(ur <=0, 1, 0) * 0 +
+    ifelse(ur >= 0.2) * 0.2 +
+    ifelse(ur > 0 & ur < 0.2, 1, 0) * ur,
   # [67] Wage Bill - All wages paid out.
   WB ~ w * N,
   # [68] Wage for capitalists.
@@ -302,18 +306,19 @@ model_eqs <- sfcr_set(
   wo_g ~ p_e + omega * prodg_e + shockwo_g,
   # [xx] Inflation.
   p_ ~ p / p[-1] - 1,
-  # [72] Omega,
-  omega ~ o0 - o2 * sqrt(ur1/o1),
+  # [72] Omega is the wage share,
+  omega ~ o_0 - o_2 * sqrt(ur1/o_1),
   # [73] Productivity gains.
-  prodg ~ pi_0 - pi_1 * u + shockprodg,
-  # [xx] Unemployment rate.
-  u ~ ifelse(ut - unorm > 0, 1, 0) * ((ut - unorm) / 100) + 0,
-  # [xx] Okuns law.
-  ur ~ ifelse(((ur[-1]) - (y - ny) / okun) < 0, 1, 0) * 0 +
-    ifelse(((ur[-1]) - (y - ny) / okun) > 0, 1, 0) * ((ur[-1]) - (y - ny) / okun),
-  ur1 ~ ifelse(ur <=0, 1, 0) * 0 +
-    ifelse(ur >= 0.2) * 0.2 +
-    ifelse(ur > 0 & ur < 0.2, 1, 0) * ur,
+  prodg ~ pi_0 - pi_1 * dut + shockprodg,
+  # [xx] Production of Capitalists.
+  prodc ~ prodc[-1] * (1 + prodg),
+  # [xx] Production of Workers.
+  prodo ~ prodo[-1] * (1 + prodg),
+  # [xx] Total production.
+  prod ~ omega_c * prodc + (1 - omega_c) * prodo,
+  # [xx] Change in utilization rate.
+  dut ~ ifelse(ut - unorm > 0, 1, 0) * ((ut - unorm) / 100) + 0,
+
   # Accounting MEMO
   WBo ~ wo * No,
   WBc ~ WB - WBo,
