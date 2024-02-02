@@ -66,7 +66,7 @@ model_eqs <- sfcr_set(
   pe ~ ((Vc_e - HPc) * 
          (lambda_20 - lambda_21 * rrm + lambda_22 * 
             rre_e - lambda_23 * (Yc_e/Vc_e) - lambda_24 *
-            rrb - lambda_25 * rrh_e) - x * (I-FU)
+            rrb - lambda_25 * rrh_e) - xi * (I-FU)
   ) / E[-1],
   # [13] Homes.
   Hc ~ ((Vc_e - HPc) * 
@@ -219,7 +219,7 @@ model_eqs <- sfcr_set(
   #----------------------------------#
   # [48] Deficit -  Collects taxes production, wages, and profits,
   # and any deficit is financed by issuing bonds.
-  GD ~ (G + rb[-1] * Bh[-1] + rb[-1] * Bcb[-1] + rb[-1] * Bb[-1]) - (IT + DT + TF + FC),
+  GD ~ (G + rb[-1] * Bh[-1] + rb[-1] * Bcb[-1] + rb[-1] * Bb[-1]) - (IT + Td + TF + FC),
   # [49] Taxes on production.
   IT ~ tau * S,
   # [50] Tax on capitalists.
@@ -309,7 +309,7 @@ model_eqs <- sfcr_set(
   # [71] Wage growth/inflation for workers.
   wo_g ~ p_e + omega * prodg_e + shockwo_g,
   # [xx] Inflation.
-  p_ ~ p / p[-1] - 1,
+  pgr ~ p / p[-1] - 1,
   # [72] Omega is the wage share,
   omega ~ o_0 - o_2 * sqrt(ur1/o_1),
   # [73] Productivity gains.
@@ -330,7 +330,7 @@ model_eqs <- sfcr_set(
   # Expectations X_e = X[-1] + sigma * (X_e[-1] - X[-1])
   #----------------------------------#
   # [74] Expected inflation
-  p_e ~ p_[-1] + sigma_p_e * (p_e[-1] - p_[-1]),
+  p_e ~ pgr[-1] + sigma_p_e * (p_e[-1] - pgr[-1]),
   # [75] Expected productivity growth
   prodg_e ~ prodg[-1] + sigma_pg * (prodg_e[-1] - prodg[-1]),
   # [76] Expected income growth
@@ -433,10 +433,10 @@ sfcr_matrix_display(tfm_zezza, "tfm")
 
 index <- sfcr_set_index(model_eqs)
 
-sfcr::sfcr_dag_blocks_plot(model_eqs)
 
 model_para <- sfcr_set(
-  
+  mu_2 ~ 20,
+  mu_1 ~ 0.001,
   CGH_e	~	0	,
   alpha_1c	~	0.7	,
   alpha_2c	~	0.025	,
@@ -511,16 +511,20 @@ model_para <- sfcr_set(
   shockpeg_e	~	0
 )
 
+model_init <- sfcr_set(
+)
+
 # Create the Baseline (Policy Steady state)
 
 model_zezza <- sfcr_baseline(
   equations = model_eqs,
   external = model_para,
+  initial = model_init,
   periods = 100,
   
 )
 
-# Check Model for consisteny
+# Check Model for consistent
 
 sfcr_validate(bs_pc, model_sim, which = "bs")
 
