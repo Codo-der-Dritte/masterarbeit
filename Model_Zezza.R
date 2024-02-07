@@ -139,7 +139,7 @@ model_eqs <- sfcr_set(
   MOo ~ (MOo[-1] * (1 - morp) + 
            MOo_cond * (ph * (Ho - Ho[-1]) - Sho)),
   # [0027C1] Condition change Mortgages.
-  MOo_cond ~ if((ph * (Ho - Ho[-1]) - Sho) > 0) {1} else {0},
+  MOo_cond ~ if((ph * (Ho - Ho[-1])) - Sho) {1} else {0},
   # [28] Share of rented homes owned by capitalist.
   Rents ~ rent * Hc[-1],
   # [29] Rent increases
@@ -190,7 +190,7 @@ model_eqs <- sfcr_set(
   # [38] Loans - rewritten to display capital.
   L ~ L[-1] + I - FU - pe * (E - E[-1]),
   # # [Memo] Firms wealth.
-  # Vf ~ p * K + HU * ph - L - pe * E,
+  Vf ~ p * K + HU * ph - L - pe * E,
   #----------------------------------#
   # Banks
   #----------------------------------#
@@ -223,12 +223,15 @@ model_eqs <- sfcr_set(
   FC ~ ra[-1] * A[-1] + rb[-1] * Bcb[-1],
   # [47C1] Rate on Advances.
   ra ~ ( 1 + rra) * (1 + p_e) - 1,
+  # [MEMO] Total High powered money.
+  #HP ~ HPb + HPo + HPc,
   #----------------------------------#
   # Government
   #----------------------------------#
   # [48] Deficit -  Collects taxes production, wages, and profits,
   # and any deficit is financed by issuing bonds.
-  GD ~ (G + rb[-1] * Bh[-1] + rb[-1] * Bcb[-1] + rb[-1] * Bb[-1]) - (IT + Td + TF + FC),
+  GD ~ (G + rb[-1] * Bh[-1] + rb[-1] * Bcb[-1] + rb[-1] * Bb[-1]) - 
+    (IT + Td + TF + FC),
   # [48C1] Rate on bonds.
   rb ~ (1 + rrb) * (1 + p_e)-1,
   # [49] Taxes on production.
@@ -271,7 +274,7 @@ model_eqs <- sfcr_set(
                       v_2 * (ph_3 - ph_3[-1])) + 0,
   # [0058C1] Condition for Supply of new homes.
   HND_cond ~ if(v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) +
-                v_2 * (ph_3 - ph_3[-1]) > 0) {1} else {0}
+                v_2 * (ph_3 - ph_3[-1]) > 0) {1} else {0},
   # [0058C2] ph lag 1,
   ph_1 ~ ph[-1],
   # [0058C3] ph lag 2.
@@ -287,9 +290,9 @@ model_eqs <- sfcr_set(
   # [59C1] Total supply of Houses.
   HNS ~ HN + HU[-1],
   # [59C2] Helper for House prices ph2.
-  ph2 ~ ph(-1) - v_3 * (HU_1 - HU_1(-1)),
+  ph2 ~ ph[-1] - v_3 * (HU_1 - HU_1[-1]),
   # [59C3] Helper for House prices ph1.
-  ph1 ~ ph(-1) + ph(-1) * v_3 * (Hc(-1) * y_e + (Ho_1 - Ho_1[-1]) - HNS(-1)),
+  ph1 ~ ph[-1] + ph[-1] * v_3 * (Hc[-1] * y_e + (Ho_1 - Ho_1[-1]) - HNS[-1]),
   # [59C4] Lag 1 of Ho
   Ho_1 ~ Ho[-1],
   
@@ -301,7 +304,7 @@ model_eqs <- sfcr_set(
   # [60C1] Helper for Aggregate Demand - total consumption.
   c ~ cc + co,
   # [60C2] Real value of houses.
-  ih ~ NH * p,
+  ih ~ HN * p,
   # [60C3] Nominal value of houses
   IH ~ ih * p,
   # [61] Aggregate Demand inflator.
@@ -317,7 +320,7 @@ model_eqs <- sfcr_set(
   # [66] Unemployment rate - Follows some sort of Okun's laws
   ur ~ ur_cond * ((ur[-1]) - (y - ny) / okun),
   # [0066C1] Condition Unemployment rate
-  ur_cond ~ if(((ur[-1]) - (y - ny) / okun) > 0) {1} else {0},
+  ur_cond ~ if((ur[-1] - (y - ny) / okun) > 0) {1} else {0},
   # [66C1] helper for ur.
   ur1 ~ ur1_cond1 * 0 + ur1_cond2 * 0.2 + ur1_cond3 * ur,
   # [0066C1] helper for ur.
@@ -353,7 +356,7 @@ model_eqs <- sfcr_set(
   # [73C4] Change in utilization rate.
   dut ~ dut_cond * ((ut - unorm) / 100) + 0,
   # [0073C4] Change in utilization rate.
-  dut_cond ~ if(ut - unorm > 0) {1} else {0},
+  dut_cond ~ if((ut - unorm) > 0) {1} else {0},
   # Accounting MEMO
   WBo ~ wo * No,
   WBc ~ WB - WBo,
@@ -408,20 +411,195 @@ model_eqs <- sfcr_set(
   rh_e ~ rh[-1] + sigma * (rh_e[-1] - rh[-1]),
   # [94] Expected real return on houses.
   rrh_e ~ (1 + rh_e) / (1 + p_e) - 1,
+)
 
+
+
+# Set up parameter and initial conditions
+
+model_para <- sfcr_set(
+  mu_2 ~ 20, # parameter
+  mu_1 ~ 0.001, # parameter
+  alpha_1c	~	0.7, # parameter
+  alpha_2c	~	0.025, # parameter
+  alpha_3c	~	0.08, # parameter
+  alpha_0o	~	0, # parameter
+  alpha_1o	~	0.8, # parameter
+  alpha_2o	~	0.025, # parameter
+  alpha_3o	~	0.08, # parameter
+  alpha_4o	~	10, # parameter
+  lambda_10	~	0.5, # parameter
+  lambda_11	~	0.45, # parameter
+  lambda_12	~	0.25, # parameter
+  lambda_13	~	0.01, # parameter
+  lambda_14	~	0.25, # parameter
+  lambda_15	~	0.05, # parameter
+  lambda_20	~	0.18, # parameter
+  lambda_21	~	0.3, # parameter
+  lambda_22	~	0.25, # parameter
+  lambda_23	~	0.01, # parameter
+  lambda_24	~	0.1, # parameter
+  lambda_25	~	0.05, # parameter
+  lambda_30	~	0.18, # parameter
+  lambda_31	~	0.45, # parameter
+  lambda_32	~	0.25, # parameter
+  lambda_33	~	0.01, # parameter
+  lambda_34	~	0.25, # parameter
+  lambda_35	~	0.1, # parameter
+  eta	~	0.2, # parameter
+  morp	~	0.01, # exogenous
+  im	~	0, #parameter
+  xi	~	0.25, # exogenous
+  spread_1	~	0.005, # exogenous
+  spread_2	~	0.0025, # exogenous
+  spread_3	~	-0.025, # exogenous
+  iota_0	~	0.005, #parameter
+  iota_1	~	2, #parameter
+  iota_2	~	1, #parameter
+  iota_3	~	0.2, #parameter
+  iota_4	~	0.4, #parameter
+  unorm	~	0.75, 
+  beta	~	0.1,
+  lambda	~	1.3,
+  omega_c	~	0.05,
+  rho_1	~	0.01,
+  chi_2	~	0.25,
+  chi_1	~	0.6,
+  tau	~	0.1,
+  tau_f	~	0.4,
+  tau_d	~	0.2,
+  v_1	~	0.5,
+  v_2	~	1,
+  v_3	~	0.0005,
+  o_1	~	0.05,
+  o_2	~	1,
+  o_0	~	2,
+  pi_0	~	0.02,
+  pi_1	~	1,
+  ny	~	0.0338,
+  okun	~	3,
+  sigma_p_e	~	0.75,
+  sigma_pg	~	0.75,
+  sigma_yg	~	0.75,
+  sigma_pe	~	0.75,
+  sigma	~	0.75,
+  phge	~	0,
+  rra	~	0.025,
+  rrb	~	0.03,
+  rrm	~	0.02,
+  shockpeg_e	~	0,
+  shockphg_e	~	0,
+  shockwc_g	~	0,
+  shockwo_g	~	0,
+  shockprodg	~	0
+)
+
+model_init <- sfcr_set(
+  wc	~	4.16666666666667	,
+  Nc	~	106.4	,
+  Rents	~	375	,
+  FD	~	400.65984	,
+  Tdc	~	450.190222222222	,
+  Yc	~	798.449084444444	,
+  yc	~	1218.80851008	,
+  Cc	~	1820.62222222222	,
+  cc	~	1170.4	,
+  CGE	~	0	,
+  pe	~	5	,
+  E	~	410.467555555555	,
+  CGHc	~	0	,
+  ph	~	3	,
+  Hc	~	37	,
+  re	~	0.195221198156682	,
+  CGE_e	~	0,
+  CGHc	~	0,
+  rh	~	0.01875	,
+  vc	~	4256	,
+  Vc	~	6620.44444444444	,
+  Mc	~	1383	,
+  M	~	4501.90222222222	,
+  Vc_e	~	6620.44444444444	,
+  i	~	157.6	,
+  I	~	245.155555555555	,
+  Co	~	1820.62222222222	,
+  co	~	1170.4	,
+  Yo	~	355.026762097778	,
+  yo	~	228.23148992	,
+  wo	~	0.833333333333333	,
+  No	~	2021.6	,
+  Mo	~	2000	,
+  Vo	~	0	,
+  vo	~	0	,
+  rent	~	0.5	,
+  CGHo	~	0	,
+  morp	~	0.01	,
+  MOo	~	1000	,
+  Ho	~	1430	,
+  y_e	~	0.02	,
+  unorm	~	0.75	,
+  WB	~	2128	,
+  p	~	1.55555555555556	,
+  s	~	2128	,
+  prodg	~	0.02	,
+  wo_g	~	0.02	,
+  prod	~	1	,
+  w	~	1	,
+  Td	~	450.190222222222	,
+  TF	~	340.48	,
+  g	~	800	,
+  HU	~	100	,
+  HN	~	0	,
+  IH	~	0	,
+  ih	~	0	,
+  HND	~	0	,
+  HNS	~	0	,
+  c	~	1170.4	,
+  S	~	3310.22222222222	,
+  y	~	0.02	,
+  pgr	~	0	,
+  prodc	~	4.16666666666667	,
+  prodo	~	0.833333333333333	,
+  dut	~	0	,
+  wc_g	~	0.02	,
+  shockprodg	~	0	,
+  N	~	2128	,
+  omega	~	1	,
+  prodg_e	~	0.02	,
+  re_e	~	0.195221198156682	,
+  rh_e	~	0.01875	,
+  pe_e	~	5	,
+  phge	~	0	,
+  peg_e	~	0	,
+  cgho_e	~	0	,
+  ur	~	0.05	,
+  FT	~	851.2	,
+  rrm	~	0.02	,
+  Tdo	~	0,
+  MOo_cond ~ 1
+)
+
+index <- sfcr_set_index(model_eqs)
+
+# Create the Baseline (Policy Steady state)
+
+model_zezza <- sfcr_baseline(
+  equations = model_eqs,
+  external = model_para,
+  initial = model_init,
+  periods = 100
 )
 
 # Take a look at the Directed acyclic graph
 
-sfcr_dag_blocks_plot(model_eqs)
-sfcr_dag_cycles_plot(model_eqs, size = 3)
+sfcr_dag_blocks_plot(model_eqs, size = 5)
+sfcr_dag_cycles_plot(model_eqs, size = 5)
 
 bs_zezza <- sfcr_matrix(
   columns = c("Household (Top 5%)" ,"Household (Bottom 95%)", "Firms", "Banks", "Central Bank", "Government", "Sum"),
   codes = c("h5", "h95", "f", "b", "cb", "g", "s"),
   r1 = c("Productive Capital", f = "+p * K", s = "+p * K"),
-  r2 = c("Homes", h5 = "+ph * Hc", h95 = "+ph * Ho", f = "+ph * HU", s = "+ph * H"),
-  r3 = c("Cash", h5 = "+HPhc", h95 = "+HPho", b = "+HPb", cb = "-HP"),
+  r2 = c("Homes", h5 = "+ph * Hc", h95 = "+ph * Ho", f = "+ph * HU", s = "+ph * HNS"),
+  r3 = c("Cash", h5 = "+HPc", h95 = "+HPo", b = "+HPb", cb = "-HP"),
   r4 = c("CB Advances", b = "-A", cb = "+A"),
   r5 = c("Bank deposits", h5 = "+Mc", h95 = "+Mo", b = "-M"),
   r6 = c("Loans to firms", f = "-L", b = "+L"),
@@ -449,113 +627,21 @@ tfm_zezza <- sfcr_matrix(
   r11 = c("Interest on Deposits", h5 = "+rm[-1]*Mc[-1]", h95 = "+rm[-1]*Mo[-1]", b = "-rm[-1]*M[-1]"),
   r12 = c("Interest on Advances", b = "-ra[-1]*A[-1]", cb = "+ra[-1]*A[-1]"),
   r13 = c("Interest on Loans", fcu = "-rl[-1]*L[-1]", b = "+rl[-1]*L[-1]"),
-  r14 = c("Interest on Mortgages", h95 = "-rmo[-1]*MO[-1]", b = "+rmo[-1]*MO[-1]"),
+  r14 = c("Interest on Mortgages", h95 = "-rmo[-1]*MOo[-1]", b = "+rmo[-1]*MOo[-1]"),
   r15 = c("Interest on Bills", h5 = "+rb[-1]*Bh[-1]", b = "+rb[-1]*Bb[-1]", cb = "+rb[-1]*Bcb[-1]", g = "-rb[-1]*B[-1]"),
-  r16 = c("Change in Cash", h5 = "-(HPhc - HPhc[-1])", h95 = "-(HPho - HPho[-1])", b = "-(HPb - HPb[-1])", cb = "+(HP - HP[-1])"),
+  r16 = c("Change in Cash", h5 = "-(HPc - HPc[-1])", h95 = "-(HPo - HPo[-1])", b = "-(HPb - HPb[-1])", cb = "+(HP - HP[-1])"),
   r17 = c("Change in Deposits", h5 = "-(Mc - Mc[-1])", h95 = "-(Mo - Mo[-1])", b = "+(M - M[-1])"),
   r18 = c("Change in Loans", fca = "+(L - L[-1])", b = "-(L - L[-1])"),
-  r19 = c("Change in Mortgages", h95 = "+(MO - MO[-1])", b = "-(MO - MO[-1])"),
+  r19 = c("Change in Mortgages", h95 = "+(MOo - MOo[-1])", b = "-(MOo - MOo[-1])"),
   r20 = c("Change in Bills", h5 = "-(Bh - Bh[-1])", b = "-(Bb - Bb[-1])", cb = "-(Bcb - Bcb[-1])", g = "+(B - B[-1])"),
   r21 = c("Change in Advances", b = "+(A - A[-1])", cb = "-(A - A[-1])"),
   r22 = c("Change in Equities", h5 = "-(E - E[-1]) * pe", fca = "+(E - E[-1]) * pe")
 )
 sfcr_matrix_display(tfm_zezza, "tfm")
 
-index <- sfcr_set_index(model_eqs)
 
 
 
-# Set up parameter and initial conditions
-
-model_para <- sfcr_set(
-  mu_2 ~ 20,
-  mu_1 ~ 0.001,
-  CGH_e	~	0,
-  alpha_1c	~	0.7,
-  alpha_2c	~	0.025,
-  alpha_3c	~	0.08,
-  alpha_0o	~	0	,
-  alpha_1o	~	0.8	,
-  alpha_2o	~	0.025,
-  alpha_3o	~	0.08,
-  alpha_4o	~	10,
-  lambda_10	~	0.5,
-  lambda_11	~	0.45,
-  lambda_12	~	0.25,
-  lambda_13	~	0.01,
-  lambda_14	~	0.25,
-  lambda_15	~	0.05,
-  lambda_20	~	0.18,
-  lambda_21	~	0.3,
-  lambda_22	~	0.25,
-  lambda_23	~	0.01,
-  lambda_24	~	0.1,
-  lambda_25	~	0.05,
-  lambda_30	~	0.18,
-  lambda_31	~	0.45,
-  lambda_32	~	0.25,
-  lambda_33	~	0.01,
-  lambda_34	~	0.25,
-  lambda_35	~	0.1,
-  eta	~	0.2,
-  morp	~	0.01,
-  im	~	0,
-  xi	~	0.25	,
-  spread_1	~	0.005,
-  spread_2	~	0.0025,
-  spread_3	~	-0.025,
-  iota_0	~	0.005,
-  iota_1	~	2,
-  iota_2	~	1,
-  iota_3	~	0.2,
-  iota_4	~	0.4,
-  unorm	~	0.75,
-  beta	~	0.1,
-  lambda	~	1.3,
-  rho_1	~	0.01,
-  chi_2	~	0.25,
-  chi_1	~	0.6,
-  tau	~	0.1,
-  tau_f	~	0.4,
-  tau_d	~	0.2,
-  v_1	~	0.5,
-  v_2	~	1,
-  v_3	~	0.0005,
-  o_1	~	0.05	,
-  o_2	~	1	,
-  o_0	~	2	,
-  pi_0	~	0.02	,
-  pi_1	~	1	,
-  ny	~	0.0338	,
-  okun	~	3	,
-  sigma_p_e	~	0.75,
-  sigma_pg	~	0.75,
-  sigma_yg	~	0.75,
-  sigma_pe	~	0.75,
-  sigma	~	0.75,
-  phge	~	0,
-  rra	~	0.025	,
-  rrb	~	0.03,
-  rrm	~	0.02,
-  shockpeg_e	~	0,
-  shockphg_e	~	0,
-  shockwc_g	~	0,
-  shockwo_g	~	0,
-  shockprodg	~	0
-)
-
-model_init <- sfcr_set(
-)
-
-# Create the Baseline (Policy Steady state)
-
-model_zezza <- sfcr_baseline(
-  equations = model_eqs,
-  external = model_para,
-  initial = model_init,
-  periods = 100,
-  
-)
 
 # Check Model for consistent
 
