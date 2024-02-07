@@ -139,7 +139,7 @@ model_eqs <- sfcr_set(
   MOo ~ (MOo[-1] * (1 - morp) + 
            MOo_cond * (ph * (Ho - Ho[-1]) - Sho)),
   # [0027C1] Condition change Mortgages.
-  MOo_cond ~ if((ph * (Ho - Ho[-1])) - Sho) {1} else {0},
+  MOo_cond ~ ifelse(ph * (Ho - Ho[-1]) - Sho > 0, 1, 0),
   # [28] Share of rented homes owned by capitalist.
   Rents ~ rent * Hc[-1],
   # [29] Rent increases
@@ -224,7 +224,7 @@ model_eqs <- sfcr_set(
   # [47C1] Rate on Advances.
   ra ~ ( 1 + rra) * (1 + p_e) - 1,
   # [MEMO] Total High powered money.
-  #HP ~ HPb + HPo + HPc,
+  HP ~ HPb + HPo + HPc,
   #----------------------------------#
   # Government
   #----------------------------------#
@@ -250,6 +250,8 @@ model_eqs <- sfcr_set(
   G ~ g * p,
   # [56] Real Government spending.
   g ~ g[-1] * (1 + y_e),
+  # [MEMO] Taxes.
+  TT ~ IT + Td + TF,
   #----------------------------------#
   # The housing market
   #----------------------------------#
@@ -260,21 +262,20 @@ model_eqs <- sfcr_set(
   # newly built homes exceed the demand for homes. Can't be negative.
   HU ~ HU_cond * ((HU[-1] + HN - (Hc - Hc[-1])-(Ho - Ho[-1]))) + 0,
   # [0057C1] Condition helper.
-  HU_cond ~ if(((HU[-1] + HN - (Hc - Hc[-1])-(Ho - Ho[-1]))) > 0) {1}
-  else {0},
+  HU_cond ~ ifelse(((HU[-1] + HN - (Hc - Hc[-1])-(Ho - Ho[-1]))) > 0, 1, 0),
   # [0057C2] HU lag 1.
   HU_1 ~ HU[-1],
   # [58] Check for HND.
   HN ~ HN_cond * HND + 0,
   # [0058C1] Condition for HND.
-  HN_cond ~ if(HND - HU[-1] > 0) {1} else {0},
+  HN_cond ~ ifelse(HND - HU[-1] > 0, 1, 0) ,
   # [58C1] Supply of new homes - is a function of expected demand 
   # and past capital gains.
   HND ~ HND_cond * (v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) +
                       v_2 * (ph_3 - ph_3[-1])) + 0,
   # [0058C1] Condition for Supply of new homes.
-  HND_cond ~ if(v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) +
-                v_2 * (ph_3 - ph_3[-1]) > 0) {1} else {0},
+  HND_cond ~ ifelse(v_1 * (Hc[-1] * y_e + (Ho - Ho[-1])) +
+                v_2 * (ph_3 - ph_3[-1]) > 0, 1, 0),
   # [0058C2] ph lag 1,
   ph_1 ~ ph[-1],
   # [0058C3] ph lag 2.
@@ -284,9 +285,9 @@ model_eqs <- sfcr_set(
   # [59] Market price of Homes.
   ph ~ ph_cond1 * ph1 + ph_cond2 * ph2,
   # [0059C1] Condition for market price of Homes.
-  ph_cond1 ~ if(HU < 10) {1} else {0},
+  ph_cond1 ~ ifelse(HU < 10, 1, 0),
   # [0059C2] Condition for market price of Homes.
-  ph_cond2 ~ if(HU >= 10) {1} else {0},
+  ph_cond2 ~ ifelse(HU >= 10, 1, 0),
   # [59C1] Total supply of Houses.
   HNS ~ HN + HU[-1],
   # [59C2] Helper for House prices ph2.
@@ -320,15 +321,15 @@ model_eqs <- sfcr_set(
   # [66] Unemployment rate - Follows some sort of Okun's laws
   ur ~ ur_cond * ((ur[-1]) - (y - ny) / okun),
   # [0066C1] Condition Unemployment rate
-  ur_cond ~ if((ur[-1] - (y - ny) / okun) > 0) {1} else {0},
+  ur_cond ~ ifelse((ur[-1] - (y - ny) / okun) > 0, 1, 0),
   # [66C1] helper for ur.
   ur1 ~ ur1_cond1 * 0 + ur1_cond2 * 0.2 + ur1_cond3 * ur,
   # [0066C1] helper for ur.
-  ur1_cond1 ~ if(ur <= 0) {1} else {0},
+  ur1_cond1 ~ ifelse(ur <= 0, 1, 0),
   # [0066C2] helper for ur.
-  ur1_cond2 ~ if(ur >= 0.2) {1} else {0},
+  ur1_cond2 ~ ifelse(ur >= 0.2, 1, 0),
   # [0066C3] helper for ur.
-  ur1_cond3 ~ if(ur > 0 & ur < 0.2) {1} else {0},
+  ur1_cond3 ~ ifelse(ur > 0 & ur < 0.2, 1,0),
   
   
   # [67] Wage Bill - All wages paid out.
@@ -356,7 +357,7 @@ model_eqs <- sfcr_set(
   # [73C4] Change in utilization rate.
   dut ~ dut_cond * ((ut - unorm) / 100) + 0,
   # [0073C4] Change in utilization rate.
-  dut_cond ~ if((ut - unorm) > 0) {1} else {0},
+  dut_cond ~ ifelse((ut - unorm) > 0, 1, 0),
   # Accounting MEMO
   WBo ~ wo * No,
   WBc ~ WB - WBo,
@@ -491,25 +492,25 @@ model_para <- sfcr_set(
   shockphg_e	~	0,
   shockwc_g	~	0,
   shockwo_g	~	0,
-  shockprodg	~	0
+  shockprodg	~	0,
 )
 
 model_init <- sfcr_set(
-  wc	~	4.16666666666667	,
-  Nc	~	106.4	,
-  Rents	~	375	,
-  FD	~	400.65984	,
-  Tdc	~	450.190222222222	,
-  Yc	~	798.449084444444	,
-  yc	~	1218.80851008	,
-  Cc	~	1820.62222222222	,
-  cc	~	1170.4	,
-  CGE	~	0	,
-  pe	~	5	,
-  E	~	410.467555555555	,
-  CGHc	~	0	,
+  wc	~	4.16666666666667,
+  Nc	~	106.4,
+  Rents	~	375,
+  FD	~	400.65984,
+  Tdc	~	450.190222222222,
+  Yc	~	798.449084444444,
+  yc	~	1218.80851008,
+  Cc	~	1820.62222222222,
+  cc	~	1170.4,
+  CGE	~	0,
+  pe	~	5,
+  E	~	410.467555555555,
+  CGHc	~	0,
   ph	~	3	,
-  Hc	~	37	,
+  Hc	~	37,
   re	~	0.195221198156682	,
   CGE_e	~	0,
   CGHc	~	0,
@@ -519,19 +520,19 @@ model_init <- sfcr_set(
   Mc	~	1383	,
   M	~	4501.90222222222	,
   Vc_e	~	6620.44444444444	,
-  i	~	157.6	,
+  i	~	157.6,
   I	~	245.155555555555	,
   Co	~	1820.62222222222	,
   co	~	1170.4	,
   Yo	~	355.026762097778	,
   yo	~	228.23148992	,
   wo	~	0.833333333333333	,
-  No	~	2021.6	,
-  Mo	~	2000	,
-  Vo	~	0	,
-  vo	~	0	,
-  rent	~	0.5	,
-  CGHo	~	0	,
+  No	~	2021.6,
+  Mo	~	2000,
+  Vo	~	0,
+  vo	~	0,
+  rent	~	0.5,
+  CGHo	~	0,
   morp	~	0.01	,
   MOo	~	1000	,
   Ho	~	1430	,
@@ -574,8 +575,7 @@ model_init <- sfcr_set(
   ur	~	0.05	,
   FT	~	851.2	,
   rrm	~	0.02	,
-  Tdo	~	0,
-  MOo_cond ~ 1
+  Tdo	~	0
 )
 
 index <- sfcr_set_index(model_eqs)
@@ -586,7 +586,9 @@ model_zezza <- sfcr_baseline(
   equations = model_eqs,
   external = model_para,
   initial = model_init,
-  periods = 100
+  periods = 100,
+  max_iter = 350,
+  method = "Broyden"
 )
 
 # Take a look at the Directed acyclic graph
@@ -603,10 +605,10 @@ bs_zezza <- sfcr_matrix(
   r4 = c("CB Advances", b = "-A", cb = "+A"),
   r5 = c("Bank deposits", h5 = "+Mc", h95 = "+Mo", b = "-M"),
   r6 = c("Loans to firms", f = "-L", b = "+L"),
-  r7 = c("Mortgages", h95 = "-MO", b = "+MO"),
+  r7 = c("Mortgages", h95 = "-MOo", b = "+MOo"),
   r8 = c("Treasuries", h5 = "+Bh", b = "+Bb", cb = "+Bcb", g = "-B"),
   r9 = c("Equities", h5 = "+pe * E", f = "-pe * E"),
-  r10 = c("Balance", h5 = "-Vc", h95 = "-Vo", f = "-Vf", g = "+GD", s = "+(p * K + ph * H)")
+  r10 = c("Balance", h5 = "-Vc", h95 = "-Vo", f = "-Vf", g = "+GD", s = "+(p * K + ph * HNS)")
 )
 
 sfcr_matrix_display(bs_zezza, "bs")
@@ -615,14 +617,14 @@ tfm_zezza <- sfcr_matrix(
   columns = c("Household (Top 5%)" ,"Household (Bottom 95%)", "Firms Cur.", "Firms Cap.", "Banks", "Central Bank", "Government", "Production"),
   codes = c("h5", "h95", "fcu", "fca", "b", "cb", "g", "prod"),
   r1 = c("Wages", h5 = "+WBc", h95 = "+WBo", prod = "-WB"),
-  r2 = c("Consumption", h5 = "-p * Cc", h95 = "-p * Co", prod = "+p * C"),
+  r2 = c("Consumption", h5 = "-p * cc", h95 = "-p * co", prod = "+p * c"),
   r3 = c("Profit Firms", h5 = "+FD", fcu = "+FT", fca = "+FU", prod = "-FT"),
   r4 = c("Profit Banks", h5 = "+FB", b = "-FB"),
   r5 = c("Profit Central Bank", cb = "-FC", g = "+FC"),
   r6 = c("Rents", h5 = "+Rents", h95 = "-Rents"),
-  r7 = c("Government Spending", g = "-p * G", prod = "+p * G"),
-  r8 = c("Taxes", h5 = "-TDc", h95 = "-TDo", fcu = "-TF", g = "+T", prod = "-IT"),
-  r9 = c("Investment in productive capital", fca = "+(K - K[-1]) * p", prod = "-(K - K[-1]) * p"),
+  r7 = c("Government Spending", g = "-p * g", prod = "+p * g"),
+  r8 = c("Taxes", h5 = "-Tdc", h95 = "-Tdo", fcu = "-TF", g = "+TT", prod = "-IT"),
+  r9 = c("Investment in productive capital", fca = "+(k - k[-1]) * p", prod = "-(k - k[-1]) * p"),
   r10 = c("Investment in Housing", fca = "+(HN - HN[-1]) * ph", prod = "-(HN - HN[-1]) * ph"),
   r11 = c("Interest on Deposits", h5 = "+rm[-1]*Mc[-1]", h95 = "+rm[-1]*Mo[-1]", b = "-rm[-1]*M[-1]"),
   r12 = c("Interest on Advances", b = "-ra[-1]*A[-1]", cb = "+ra[-1]*A[-1]"),
@@ -639,7 +641,9 @@ tfm_zezza <- sfcr_matrix(
 )
 sfcr_matrix_display(tfm_zezza, "tfm")
 
-
+#Check for model consistency
+sfcr_validate(bs_zezza, model_zezza, which = "bs")
+sfcr_validate(tfm_zezza, model_zezza, which = "tfm")
 
 
 

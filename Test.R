@@ -156,11 +156,7 @@
 #'
 .sfcr_eqs_check <- function(m, equations) {
   
-  m= s3
-  equations =s2
-  
   exprs <- purrr::map(equations$rhs, function(x) parse(text=x))
-  eval(exprs[[96]])
    for (.i in 2) {
     for (var in seq_along(equations$rhs)) {
       tryCatch(
@@ -548,6 +544,16 @@ eywords internal
   #                id = dplyr::row_number())
   
   return(x)
+}
+
+
+sfcr_set_index <- function(eqs) {
+  eqs = model_eqs
+  abortifnot(inherits(eqs, "sfcr_set"), "Please supply a list of equations created with `sfcr_set()`.")
+  
+    purrr::map_df(eqs, ~ tibble::enframe(name = "id", deparse(.x, width.cutoff = 500))) %>%
+    dplyr::mutate(id = 1:length(eqs)) %>%
+    tidyr::separate(.data$value, into = c("lhs", "rhs"), " ~ ")
 }
 
 sfcr_baseline <- function(equations, external, periods, initial = NULL, hidden = NULL, max_iter = 350, .hidden_tol = 0.1, tol = 1e-8, method = "Broyden", rhtol = FALSE, ...) {
